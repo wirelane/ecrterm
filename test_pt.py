@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
     Example script to demonstrate a payment process.
@@ -16,7 +17,11 @@ if __name__ == '__main__':
     e.transport.slog = ecr.ecr_log
     print(e.detect_pt())
     if e.detect_pt():
-        e.register()
+        e.register(config_byte=packets.base_packets.Registration.generate_config(
+                ecr_prints_receipt=False,
+                ecr_prints_admin_receipt=False,
+                ecr_controls_admin=True,
+                ecr_controls_payment=True,))
 
         status = e.status()
         if status:
