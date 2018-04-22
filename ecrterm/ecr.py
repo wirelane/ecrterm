@@ -138,11 +138,11 @@ class ECR(object):
 
     def __init__(self, device='/dev/ttyUSB0', password='123456'):
         """
-            Initializes an ECR object and connects to the serial device given
-            Fails if Serial Device is not found.
+        Initializes an ECR object and connects to the serial device given
+        Fails if Serial Device is not found.
 
-            You can access the Device on low level as the `transport`
-            You can access the Protocol Handler on low level as `transmission`
+        You can access the Device on low level as the `transport`
+        You can access the Protocol Handler on low level as `transmission`
         """
         self.transport = transmission.SerialTransport(device)
         # self.transport.slog = ecr_log
@@ -163,8 +163,8 @@ class ECR(object):
 
     def register(self, config_byte):
         """
-            registers this ECR at the PT, locking menus
-            for real world conditions.
+        registers this ECR at the PT, locking menus
+        for real world conditions.
         """
         kwargs = {}
         if self.password:
@@ -187,8 +187,8 @@ class ECR(object):
 
     def register_unlocked(self):
         """
-            registers to the PT, not locking the master menu on it.
-            do not use in production environment.
+        registers to the PT, not locking the master menu on it.
+        do not use in production environment.
         """
         ret = self.transmit(
             Registration(password=self.password,
@@ -218,10 +218,10 @@ class ECR(object):
 
     def end_of_day(self):
         """
-            - sends an end of day packet.
-            - saves the log in `daylog`
+        - sends an end of day packet.
+        - saves the log in `daylog`
 
-            @returns: 0 if there were no protocol errors.
+        @returns: 0 if there were no protocol errors.
         """
         # old_histoire = self.transmitter.history
         # self.transmitter.history = []
@@ -257,10 +257,10 @@ class ECR(object):
 
     def payment(self, amount_cent=50):
         """
-            executes a payment in amount of cents.
-            @returns: True, if payment went through, or False if it was
-            canceled.
-            throws exceptions.
+        executes a payment in amount of cents.
+        @returns: True, if payment went through, or False if it was
+        canceled.
+        throws exceptions.
         """
         pkg = Authorisation(
             amount=amount_cent,  # in cents.
@@ -282,15 +282,15 @@ class ECR(object):
 
     def restart(self):
         """
-            restarts/resets the PT.
+        restarts/resets the PT.
         """
         self._state_registered = False
         return self.transmit(ResetTerminal())
 
     def reset(self):
         """
-            - resets transport: @see ecrterm.transmission.Transport.reset()
-            - restarts pt: @see self.restart()
+        - resets transport: @see ecrterm.transmission.Transport.reset()
+        - restarts pt: @see self.restart()
         """
         self.transport.reset()
         time.sleep(1)
@@ -303,13 +303,13 @@ class ECR(object):
                   duration=5,
                   beeps=0):
         """
-            displays a text on the PT screen for duration of seconds.
+        displays a text on the PT screen for duration of seconds.
 
-            @param lines: a list of strings.
-            @param duration: 0 for forever.
-            @param beeps: make some noise.
+        @param lines: a list of strings.
+        @param duration: 0 for forever.
+        @param beeps: make some noise.
 
-            @note: any error due to wrong strings given are not checked.
+        @note: any error due to wrong strings given are not checked.
         """
         lines = lines or ['Hello world!', ]
         kw = {'display_duration': duration}
@@ -323,16 +323,16 @@ class ECR(object):
 
     def status(self):
         """
-            executes a status enquiry. also sets self.version if not set.
-            success:
-            returns 0 if successful, and status is unchanged.
-            returns an int status code if status has changed.
-            errors:
-            returns None if no status was transmitted.
-            returns False on transmit errors.
+        executes a status enquiry. also sets self.version if not set.
+        success:
+        returns 0 if successful, and status is unchanged.
+        returns an int status code if status has changed.
+        errors:
+        returns None if no status was transmitted.
+        returns False on transmit errors.
 
-            to check for the status code:
-                common.TERMINAL_STATUS_CODES.get( status, 'Unknown' )
+        to check for the status code:
+            common.TERMINAL_STATUS_CODES.get( status, 'Unknown' )
         """
         errors = self.transmit(StatusEnquiry(self.password))
         if not errors:
@@ -348,11 +348,11 @@ class ECR(object):
 
     def transmit(self, packet):
         """
-            transmits a packet, therefore introducing the protocol cascade.
-            rewrite this function if you want packets be routed anywhere
-            since the whole ECR Object uses this function to transmit.
+        transmits a packet, therefore introducing the protocol cascade.
+        rewrite this function if you want packets be routed anywhere
+        since the whole ECR Object uses this function to transmit.
 
-            use `last` property to access last packet transmitted.
+        use `last` property to access last packet transmitted.
         """
         # we actually make a small sleep, allowing better flow.
         time.sleep(0.2)
@@ -364,10 +364,10 @@ class ECR(object):
 
     def wait_for_status(self):
         """
-            waits until self.status() returns 0 (or False/None)
-            polls the PT in 2 second intervals.
-            this function prints out the status string.
-            use it as code example.
+        waits until self.status() returns 0 (or False/None)
+        polls the PT in 2 second intervals.
+        this function prints out the status string.
+        use it as code example.
         """
         status = self.status()
         while status:
@@ -377,7 +377,7 @@ class ECR(object):
 
     def listen(self, timeout=15):
         """
-            dev function to simply listen.
+        dev function to simply listen.
         """
         ok, message = None, None
         while True:
@@ -392,16 +392,16 @@ class ECR(object):
 
     def devprint_packets(self):
         """
-            dev function to execute the script located in base_packets
-            useful to get a list of all parsed packets.
+        dev function to execute the script located in base_packets
+        useful to get a list of all parsed packets.
         """
         from pprint import pprint
         pprint(Packets.packets)
 
     def devprint_bitmaps(self):
         """
-            dev function to execute the script located in bitmaps
-            useful to get a list of all valid bitmaps.
+        dev function to execute the script located in bitmaps
+        useful to get a list of all valid bitmaps.
         """
         from pprint import pprint
         from ecrterm.packets.bitmaps import BITMAPS_ARGS
