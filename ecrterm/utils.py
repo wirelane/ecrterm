@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/env python
 """
-    Utility Functions.
-    
-    @author g4b
+Utility Functions.
+
+@author g4b
 """
 import sys
 
@@ -29,13 +27,12 @@ else:
         return v
 
 
-
 def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True,
               ecr=None):
     """ connects to given serial port and tests if a PT is present.
         if present: tries to return version number or True
         returns False otherwise.
-        
+
         @param timeout: set the timeout to have a faster response time.
         @param silent: if False, exceptions won't be caught, default: True.
         @param ecr: give a working ecr to perform this task. note: you have to
@@ -67,6 +64,7 @@ def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True,
             return False
     else:
         return __detect_pt(device, timeout, ecr)
+
 
 if __name__ == '__main__':
     if detect_pt():

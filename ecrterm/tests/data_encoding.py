@@ -2,12 +2,12 @@
 
 """
     Test for Data Encoding
-    
+
     All Packets tested here should be those which are SENT to the PT mainly.
     you can see the incoming tests in parsing.
-    
+
     Lets test if packets are encoded right
-    
+
     Unter docs/examples finden sich dateien mit logs.
     Diese Tests sehen nach ob unsere Klassen dieselben binären daten erzeugen.
 """
@@ -39,7 +39,7 @@ class TestCaseDataEncoding(unittest.TestCase):
         data_expected = """10 02 06 00 06 12 34 56 BA 09 78 10 03 24 C3"""
         pk = Registration()
         self.assertEqual(data_expected, list_of_bytes(pk))
-        # 
+        #
 
 
     def test_Initialisierung(self):
@@ -89,7 +89,7 @@ class TestCaseDataEncoding(unittest.TestCase):
     def test_packet_showtext(self):
         data_expected = """10 02 06 E0 25 F2 F1 F5 45 49 4E 47 45 42 45 4E 20 55 4E 44 20 4F 4B F1 F1 F6 46 41 48 52 45 52 4E 55 4D 4D 45 52 20 20 20 20 10 03 5A BA"""
         lines = ['FAHRERNUMMER    ', 'EINGEBEN UND OK', ]
-        #F1 F1 F6 46 41 48 52 45 52 4E 55 4D 4D 45 52 20 20 20 20 //FAHRERNUMMER  
+        #F1 F1 F6 46 41 48 52 45 52 4E 55 4D 4D 45 52 20 20 20 20 //FAHRERNUMMER
         #F2 F1 F5 45 49 4E 47 45 42 45 4E 20 55 4E 44 20 4F 4B//EINGEBEN UND OK
         pk = ShowText(
             #display_duration=0,

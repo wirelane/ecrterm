@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-    Classes and Functions which deal with the APDU Layer
-    
-"""
+"""Classes and Functions which deal with the APDU Layer."""
+
 import sys
 from logging import debug
 
@@ -21,15 +18,15 @@ class _PacketRegister:
         Singleton for each Protocol.
     """
     # Currencies
-    CC_EUR = [ 0x09, 0x78 ]
+    CC_EUR = [0x09, 0x78]
     # Command Classes
-    CMD_STD = 0x6 # all standard commands, mostly ecr to pt
-    CMD_SERVICE = 0x8 # commands mostly for service. mostly ecr to pt.
-    CMD_PT = 0x4 # commands from pt to ecr.
-    CMD_STATUS = 0x5 # only seen in 05 01 : status inquiry.
+    CMD_STD = 0x6  # all standard commands, mostly ecr to pt
+    CMD_SERVICE = 0x8  # commands mostly for service. mostly ecr to pt.
+    CMD_PT = 0x4  # commands from pt to ecr.
+    CMD_STATUS = 0x5  # only seen in 05 01 : status inquiry.
     # from pt to ecr only:
-    CMD_RESP_OK = 0x80 # work done
-    CMD_RESP_ERROR = 0x84 # work had errors
+    CMD_RESP_OK = 0x80  # work done
+    CMD_RESP_ERROR = 0x84  # work had errors
 
     def __init__(self):
         self.packets = {}
@@ -40,9 +37,10 @@ class _PacketRegister:
             if packet_class.cmd_instr is not None:
                 # this packet is a specific tuple of instructions.
                 # it will be registered as such
-                key_str = '%s_%s' % (hex(packet_class.cmd_class), hex(packet_class.cmd_instr))
+                key_str = '%s_%s' % (
+                    hex(packet_class.cmd_class), hex(packet_class.cmd_instr))
                 # debug
-                debug('Registered Class %s for Command Tuple ( %s, %s )'\
+                debug('Registered Class %s for Command Tuple ( %s, %s )'
                       % (str(packet_class),
                          hex(packet_class.cmd_class),
                          hex(packet_class.cmd_instr)))
@@ -50,7 +48,7 @@ class _PacketRegister:
                 # this packet handles a variety of supercommands
                 key_str = '%s' % hex(packet_class.cmd_class)
                 # debug
-                debug('Registered Class %s for Super Command Fallback ( %s )'\
+                debug('Registered Class %s for Super Command Fallback ( %s )'
                       % (str(packet_class),
                          hex(packet_class.cmd_class)))
             self.packets[key_str] = packet_class
@@ -62,28 +60,32 @@ class _PacketRegister:
             datastream = conv.toBytes(datastream[:2])
         # read the first two bytes of the stream.
         cc, ci = datastream[:2]
-        #print '<| %s %s' % (hex(cc), hex(ci))
+        # print '<| %s %s' % (hex(cc), hex(ci))
         # now look up if we got this packet class:
         return self.packets.get('%s_%s' % (hex(cc), hex(ci)),
                                 self.packets.get(
                                 '%s' % (hex(cc)),
                                 None))
+
+
 Packets = _PacketRegister()
+
 
 class APDUPacket(object):
     """
-        Packet can be created by binary data or programmatically.
-        Goal is to not save any binary data in the instance anymore.
-        Translation from data to classes and vice versa should be fluent.
+    Packet can be created by binary data or programmatically.
+    Goal is to not save any binary data in the instance anymore.
+    Translation from data to classes and vice versa should be fluent.
     """
     class NotEnoughData(Exception):
         """ raised if the apdu has not enough data to make sense """
         pass
+
     class IntegrityError(Exception):
         pass
-    cmd_class = 0x6 # standard.
+    cmd_class = 0x6  # standard.
     cmd_instr = None
-    allowed_bitmaps = None # None=All, [] = None.
+    allowed_bitmaps = None  # None=All, [] = None.
     fixed_arguments = []
     fixed_values = {}
 
@@ -96,7 +98,7 @@ class APDUPacket(object):
             fvalues.update(self.fixed_values)
         i = 0
         while (i < num_given) and (i < num_fixed):
-            # 
+            #
             fvalues[self.fixed_arguments[i]] = args[i]
             i += 1
         # the kwargs are the bitmaps.
@@ -110,7 +112,7 @@ class APDUPacket(object):
                     bmp = klass(v)
                     bmp._id = key
                     bmp._descr = info
-                    bitmaps += [ bmp ]
+                    bitmaps += [bmp]
         self.fixed_values = fvalues
         self.args = args or []
         self.kwargs = kwargs or {}
@@ -131,23 +133,24 @@ class APDUPacket(object):
     @classmethod
     def data_length(cls, data):
         """
-            if data length l < 255: length is 1 byte.
-            if data length 254 < l < 65535: length is 3 bytes.
-            L = 0xFF -> following two bytes are length. 
+        if data length l < 255: length is 1 byte.
+        if data length 254 < l < 65535: length is 3 bytes.
+        L = 0xFF -> following two bytes are length.
         """
-        l = len(data)
-        if l > 254:
-            if l > 65535:
-                raise NotImplementedError("APDU Data length cannot be bigger than 2 bytes.")
-            return [ 0xFF, ] + int_word_split(l)
-        return [ l ]
+        data_len = len(data)
+        if data_len > 254:
+            if data_len > 65535:
+                raise NotImplementedError(
+                    "APDU Data length cannot be bigger than 2 bytes.")
+            return [0xFF, ] + int_word_split(data_len)
+        return [data_len]
 
     def enrich_fixed(self):
         """
-            fixed arguments should be enriched here into the datastream.
-            as to speak: serialized.
-            
-            by default, it will try to serialize fixed_arguments from fixed_values
+        fixed arguments should be enriched here into the datastream.
+        as to speak: serialized.
+
+        by default, it will try to serialize fixed_arguments from fixed_values
         """
         self.validate()
         ds = []
@@ -161,7 +164,7 @@ class APDUPacket(object):
                     elif isinstance(val, list):
                         pass
                     else:
-                        val = [ val, ]
+                        val = [val, ]
                     # now just save it into ds
                     ds += val
         return ds
@@ -181,13 +184,13 @@ class APDUPacket(object):
         # try to order our bitmaps after allowed_bitmaps maybe?
         for bitmap in self.bitmaps:
             # is bitmap allowed?
-            # if y, 
+            # if y,
             data += bitmap.dump()
         # last: insert the length
         return self.data_length(data) + data
 
     def to_list(self):
-        return [ self.cmd_class, self.cmd_instr or 0 ] + self.data
+        return [self.cmd_class, self.cmd_instr or 0] + self.data
 
     #############################################
     # Parsing ###################################
@@ -198,9 +201,9 @@ class APDUPacket(object):
             arguments not represented by bitmaps.
             This data usually comes before any bitmaps are present
             and each packet has to know for itself, how to handle them.
-            
+
             data is the whole packet data after the length part
-            
+
             length is the given data-length coded into the packet.
         """
         # consume all fixed arguments from data here.
@@ -218,21 +221,22 @@ class APDUPacket(object):
         if blob[pos] == 0xff:
             # length field is next two bytes.
             # @todo: could be wrong:
-            l = (blob[pos + 1] << 8) + blob[pos + 2]
-            pos += 2 # consume 2 bytes.
+            length = (blob[pos + 1] << 8) + blob[pos + 2]
+            pos += 2  # consume 2 bytes.
         else:
-            l = blob[pos]
-        pos += 1 # we move one byte further in all cases.
+            length = blob[pos]
+        pos += 1  # we move one byte further in all cases.
         # now we should read our data ahead to length.
         # look ahead if we have enough data.
-        if len(blob) >= pos + l:
-            data = blob[pos:pos + l]
+        if len(blob) >= pos + length:
+            data = blob[pos:pos + length]
         else:
-            raise self.NotEnoughData("Not enough Data to create the packet data.")
+            raise self.NotEnoughData(
+                "Not enough Data to create the packet data.")
         # step 1: fixed arguments.
-        ## if this packet has some fixed arguments, they have to be
-        ## parsed first.
-        data = self.consume_fixed(data, l)
+        # if this packet has some fixed arguments, they have to be
+        # parsed first.
+        data = self.consume_fixed(data, length)
         # step 2: bitmaps.
         while data:
             bmp, data = BMP.read_stream(data)
@@ -252,7 +256,7 @@ class APDUPacket(object):
             if Kls:
                 instance = Kls()
                 # fix for multipackets:
-                if instance.cmd_instr == None:
+                if instance.cmd_instr is None:
                     instance.cmd_instr = blob[1]
                 instance.data = blob[2:]
                 if not instance.validate():
