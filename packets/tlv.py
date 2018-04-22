@@ -20,6 +20,7 @@
 """
 from ecrterm.packets.bmp import BMP
 
+
 class TLV(BMP):
     _id = 0x06
 
@@ -65,4 +66,3 @@ class TLV(BMP):
             data = data[1:]
         self._data = data[:length]
         return data[length:]
-

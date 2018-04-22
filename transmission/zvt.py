@@ -4,9 +4,11 @@
     
     @author g4b
 """
-from ecrterm.transmission.signals import *
-from ecrterm.transmission._transmission import Transmission, TransmissionException
 from ecrterm.packets.base_packets import PacketReceived, PacketReceivedError
+from ecrterm.transmission._transmission import (
+    Transmission, TransmissionException)
+from ecrterm.transmission.signals import *
+
 
 class ZVTTransmission(Transmission):
     """

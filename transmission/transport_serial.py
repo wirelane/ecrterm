@@ -8,11 +8,15 @@
     @author g4b
 """
 
-from ecrterm import crc, conv, common
+import os  # @UnresolvedImport
+import select
+import time
+
+import serial
+from ecrterm import common, conv, crc
 from ecrterm.packets.apdu import APDUPacket
-from ecrterm.utils import is_stringlike, ensure_bytes
-import os, serial, select, time#@UnresolvedImport
 from ecrterm.transmission.signals import *
+from ecrterm.utils import ensure_bytes, is_stringlike
 
 SERIAL_DEBUG = False
 def std_serial_log(instance, data, incoming=False):

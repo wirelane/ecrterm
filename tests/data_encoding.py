@@ -13,11 +13,11 @@
 """
 
 import unittest
-#import sys
-#sys.path.insert(0, '..')
-from ecrterm.packets import *
-from ecrterm.transmission import SerialMessage, ACK, NAK
+
 from ecrterm import conv
+from ecrterm.packets import *
+from ecrterm.transmission import ACK, NAK, SerialMessage
+
 
 def list_of_bytes(apdu):
     sm = SerialMessage(apdu)

@@ -4,9 +4,9 @@
     Transmission Basics.
     @author g4b
 """
-from ecrterm.transmission.signals import *
 from ecrterm import common
 from ecrterm.packets.base_packets import PacketReceived
+from ecrterm.transmission.signals import *
 
 
 class TransmissionException(common.ApplicationLayerException):

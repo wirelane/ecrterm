@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
+import serial  # @UnresolvedImport
 from ecrterm.transmission.transport_serial import *
-import serial #@UnresolvedImport
+
 
 class SerialTransportUnbuffered(SerialTransport):
     class UnbufferedSerial(serial.Serial):

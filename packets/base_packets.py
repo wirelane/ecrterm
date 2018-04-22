@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-from ecrterm.packets.apdu import APDUPacket, Packets
-from ecrterm.packets import bmp
-from ecrterm import conv, common
-from ecrterm.packets.bmp import BCD
 import datetime
+
+from ecrterm import common, conv
+from ecrterm.packets import bmp
+from ecrterm.packets.apdu import APDUPacket, Packets
+from ecrterm.packets.bmp import BCD
+
 
 class Packet(APDUPacket):
     wait_for_completion = False

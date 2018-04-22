@@ -5,10 +5,12 @@
     @author g4b
 """
 import unittest
+
+from ecrterm.packets.bmp import *
+
 #import sys
 #sys.path.insert(0, '..')
 
-from ecrterm.packets.bmp import *
 
 class TestSequenceFunctions(unittest.TestCase):
 

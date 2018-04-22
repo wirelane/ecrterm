@@ -3,13 +3,13 @@
     Classes and Functions which deal with the APDU Layer
     
 """
-from logging import debug
 import sys
-from ecrterm import conv
-from ecrterm.packets.bmp import BMP, int_word_split
-from ecrterm.packets.bitmaps import BITMAPS_ARGS
-from ecrterm.utils import is_stringlike
+from logging import debug
 
+from ecrterm import conv
+from ecrterm.packets.bitmaps import BITMAPS_ARGS
+from ecrterm.packets.bmp import BMP, int_word_split
+from ecrterm.utils import is_stringlike
 
 if sys.version_info[0] == 2:
     range = xrange
@@ -260,4 +260,3 @@ class APDUPacket(object):
                 return instance
             else:
                 debug('Unknown Packet')
-

@@ -7,8 +7,6 @@
 """
 import sys
 
-
-
 if sys.version_info[0] == 2:
     def is_stringlike(v):
         return isinstance(v, basestring)
@@ -75,4 +73,3 @@ if __name__ == '__main__':
         print("PT is online at ttyUSB0")
     else:
         print("PT cant be found at ttyUSB0")
-

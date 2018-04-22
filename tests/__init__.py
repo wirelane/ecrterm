@@ -6,6 +6,7 @@
 """
 import unittest
 
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest()

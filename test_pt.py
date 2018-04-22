@@ -3,10 +3,9 @@
 """
     Example script to demonstrate a payment process.
 """
-from ecrterm import packets
-from ecrterm import transmission
-from ecrterm import ecr
 import time
+
+from ecrterm import ecr, packets, transmission
 
 if __name__ == '__main__':
     def printer(lines_of_text):

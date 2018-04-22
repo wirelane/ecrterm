@@ -8,12 +8,14 @@
      - see the representation of the packet
      - ability for incoming and outgoing
 """
-from ecrterm.utils import is_stringlike
-from ecrterm.packets import *
+import logging
+import time
+
 from ecrterm import transmission
-from ecrterm.transmission.signals import *
-import time, logging
 from ecrterm.common import TERMINAL_STATUS_CODES
+from ecrterm.packets import *
+from ecrterm.transmission.signals import *
+from ecrterm.utils import is_stringlike
 
 
 class A(object):

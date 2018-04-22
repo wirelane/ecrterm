@@ -8,8 +8,8 @@
 import struct
 import sys
 
-from ecrterm.common import Dumpling
 from ecrterm import conv
+from ecrterm.common import Dumpling
 from ecrterm.utils import is_stringlike
 
 if sys.version_info[0] == 2:
@@ -353,4 +353,3 @@ class BCD(FixedLength):
 class BYTE(FixedLength):
     def __repr__(self):
         return "Bitmap %s, <BYTES %s>" % (self._key, self._length)
-

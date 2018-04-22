@@ -3,15 +3,17 @@
     Incoming Packets should be always parsable.
     this test tries to look at the parser in detail.
 """
-import unittest
-import sys
 import logging
-#sys.path.insert(0, '..')
+import sys
+import unittest
 
-from ecrterm.packets.bmp import *
+from ecrterm import conv
 from ecrterm.ecr import parse_represented_data
 from ecrterm.packets import *
-from ecrterm import conv
+from ecrterm.packets.bmp import *
+
+#sys.path.insert(0, '..')
+
 
 class TestParsingMechanisms(unittest.TestCase):
 

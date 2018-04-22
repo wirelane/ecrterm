@@ -13,6 +13,6 @@
     @author g4b
 """
 
-from ecrterm.transmission._transmission import *
 from ecrterm.transmission import signals, zvt
+from ecrterm.transmission._transmission import *
 from ecrterm.transmission.transport_serial import SerialTransport
