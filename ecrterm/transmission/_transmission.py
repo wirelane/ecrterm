@@ -10,10 +10,9 @@ from ecrterm.transmission.signals import (
 
 class Transmission(object):
     """
-    A Transmission Object represents an open connection between ECR and PT.
-    It regulates the flow of packets, and uses a Transport
-    to send its data.
-    The default Transport to use is the serial transport.
+    A Transmission Object represents an open connection between ECR and
+    PT. It regulates the flow of packets, and uses a Transport to send
+    its data. The default Transport to use is the serial transport.
     """
     actual_timeout = TIMEOUT_T4_DEFAULT
     last = None
@@ -41,9 +40,7 @@ class Transmission(object):
         self.transport.send(packet, no_wait=True)
 
     def handle_packet_response(self, packet, response):
-        """
-        A shortcut for calling the handle_response of the packet.
-        """
+        """A shortcut for calling the handle_response of the packet."""
         return packet.handle_response(response, self)
 
     def transmit(self, packet, history=None):

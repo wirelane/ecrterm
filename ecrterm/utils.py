@@ -18,16 +18,16 @@ def ensure_bytes(v):
     return v
 
 
-def detect_pt(
-        device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
-    """ connects to given serial port and tests if a PT is present.
-        if present: tries to return version number or True
-        returns False otherwise.
+def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
+    """
+    connects to given serial port and tests if a PT is present.
+    if present: tries to return version number or True
+    returns False otherwise.
 
-        @param timeout: set the timeout to have a faster response time.
-        @param silent: if False, exceptions won't be caught, default: True.
-        @param ecr: give a working ecr to perform this task. note: you have to
-            reconnect the transport since the timeout is changed.
+    @param timeout: set the timeout to have a faster response time.
+    @param silent: if False, exceptions won't be caught, default: True.
+    @param ecr: give a working ecr to perform this task. note: you have to
+        reconnect the transport since the timeout is changed.
     """
     global ECR, StatusEnquiry, Completion
     if ECR is None:

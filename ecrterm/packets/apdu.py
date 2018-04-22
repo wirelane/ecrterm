@@ -60,10 +60,9 @@ class _PacketRegister:
         cc, ci = datastream[:2]
         # print '<| %s %s' % (hex(cc), hex(ci))
         # now look up if we got this packet class:
-        return self.packets.get('%s_%s' % (hex(cc), hex(ci)),
-                                self.packets.get(
-                                '%s' % (hex(cc)),
-                                None))
+        return self.packets.get(
+            '%s_%s' % (hex(cc), hex(ci)),
+            self.packets.get('%s' % (hex(cc)), None))
 
 
 Packets = _PacketRegister()

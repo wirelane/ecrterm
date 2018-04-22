@@ -26,11 +26,11 @@ def std_serial_log(instance, data, incoming=False):
         if is_stringlike(incoming):
             data = bs2hl(data)
         if incoming:
-            print("< %s" % toHexString(data))
+            print('< %s' % toHexString(data))
         else:
-            print("> %s" % toHexString(data))
+            print('> %s' % toHexString(data))
     except Exception:
-        print("| error in log")
+        print('| error in log')
 
 
 def noop(*args, **kwargs):
@@ -87,7 +87,7 @@ class SerialMessage(object):
         return new_apdu
 
     def __repr__(self):
-        return "SerialMessage (APDU: %s, CRC-L: %s CRC-H: %s)" % (
+        return 'SerialMessage (APDU: %s, CRC-L: %s CRC-H: %s)' % (
             toHexString(self.apdu),
             hex(self.crc_l),
             hex(self.crc_h))
@@ -104,6 +104,7 @@ class SerialMessage(object):
 class SerialTransport(Transport):
     SerialCls = serial.Serial
     slog = noop
+    is_tcp = False
 
     def __init__(self, device):
         self.device = device
@@ -111,11 +112,8 @@ class SerialTransport(Transport):
 
     def connect(self, timeout=30):
         ser = self.SerialCls(
-            port=self.device,
-            baudrate=9600,
-            parity=serial.PARITY_NONE,
-            stopbits=serial.STOPBITS_TWO,
-            bytesize=serial.EIGHTBITS,
+            port=self.device, baudrate=9600, parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_TWO, bytesize=serial.EIGHTBITS,
             timeout=timeout,  # set a timeout value, None for waiting forever
             xonxoff=0,  # disable software flow control
             rtscts=0,  # disable RTS/CTS flow control
@@ -163,9 +161,7 @@ class SerialTransport(Transport):
             self.connection.write(ensure_bytes(chr(NAK)))
 
     def read(self, timeout=TIMEOUT_T2):
-        """
-            reads a message packet. any errors are raised directly.
-        """
+        """Reads a message packet. any errors are raised directly."""
         # if in 5 seconds no message appears, we respond with a nak and
         # raise an error.
         self.connection.timeout = timeout
@@ -179,7 +175,7 @@ class SerialTransport(Transport):
         # test our header to be valid
         if header != [DLE, STX]:
             self.slog(header, True)
-            raise TransportLayerException("Header Error: %s" % header)
+            raise TransportLayerException('Header Error: %s' % header)
         # read until DLE, ETX is reached.
         dle = False
         # timeout to T1 after header.
@@ -188,15 +184,13 @@ class SerialTransport(Transport):
             b = ord(self.connection.read(1))  # read a byte.
             if b is None:
                 # timeout
-                raise TransportLayerException(
-                    "Timeout T1 reading stream.")
+                raise TransportLayerException('Timeout T1 reading stream.')
             if b == ETX and dle:
                 # dle was set, and this is ETX, so we are at the end.
                 # we read the CRC now.
                 crc = self.connection.read(2)
                 if not crc:
-                    raise TransportLayerException(
-                        "Timeout T1 reading CRC")
+                    raise TransportLayerException('Timeout T1 reading CRC')
                 else:
                     crc = bs2hl(crc)
                 # and break
@@ -212,8 +206,7 @@ class SerialTransport(Transport):
             elif dle:
                 # dle was set, but we got no etx here.
                 # this seems to be an error.
-                raise TransportLayerException(
-                    "DLE without sense detected.")
+                raise TransportLayerException('DLE without sense detected.')
             # we add this byte to our apdu.
             apdu += [b]
         self.slog(header + apdu + [DLE, ETX] + crc, True)
@@ -223,10 +216,10 @@ class SerialTransport(Transport):
         try:
             crc, apdu = self.read(timeout)
             msg = SerialMessage(apdu)
-        except Exception as e:
+        except Exception:
             # this is a NAK - re-raise for further investigation.
             self.write_nak()
-            raise e
+            raise
         # test the CRC:
         if msg.crc() == crc:
             self.write_ack()
@@ -242,7 +235,7 @@ class SerialTransport(Transport):
         while not i or (i < 2 and not crc_ok):
             crc_ok, message = self.read_message(timeout)
             if not crc_ok:
-                self.log("CRC Checksum Error, retry %s" % i)
+                self.log('CRC Checksum Error, retry %s' % i)
             i += 1
         if not crc_ok:
             # Message Fail!?
@@ -253,10 +246,10 @@ class SerialTransport(Transport):
 
     def send_message(self, message, tries=0, no_wait=False):
         """
-            sends input with write
-            returns output with read.
-            if skip_read is True, it only returns true, you have to read
-            yourself.
+        sends input with write
+        returns output with read.
+        if skip_read is True, it only returns true, you have to read
+        yourself.
         """
         if message:
             self.write(message.as_bin())
@@ -284,9 +277,7 @@ class SerialTransport(Transport):
                     'Unknown Acknowledgment Byte %s' % bs2hl(acknowledge))
 
     def send(self, apdu, tries=0, no_wait=False):
-        """
-            automatically converts an apdu into a message.
-        """
+        """Automatically converts an apdu into a message."""
         return self.send_message(SerialMessage(apdu), tries, no_wait)
 
 
@@ -295,7 +286,7 @@ if __name__ == '__main__':
     c = SerialTransport('/dev/ttyUSB0')
     from ecrterm.packets.base_packets import Registration
     if c.connect():
-        print("connected to usb0")
+        print('connected to usb0')
     else:
         exit()
     # register

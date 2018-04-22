@@ -6,10 +6,9 @@ Maybe create a small console program which allows us to:
 - see the representation of the packet
 - ability for incoming and outgoing
 """
-import logging
-import time
+from logging import error
+from time import sleep
 
-from ecrterm import transmission
 from ecrterm.common import TERMINAL_STATUS_CODES
 from ecrterm.conv import bs2hl, toBytes, toHexString
 from ecrterm.exceptions import TransportLayerException
@@ -18,7 +17,10 @@ from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
     Registration, ResetTerminal, StatusEnquiry, StatusInformation)
 from ecrterm.packets.bmp import BCD
+from ecrterm.transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
+from ecrterm.transmission.transport_serial import SerialTransport
+from ecrterm.transmission.transport_tcp import TcpTransport
 from ecrterm.utils import is_stringlike
 
 
@@ -41,7 +43,7 @@ def dismantle_serial_packet(data):
         raise TransportLayerException('No Header')
     # test our header to be valid
     if header != [DLE, STX]:
-        raise TransportLayerException("Header Error: %s" % header)
+        raise TransportLayerException('Header Error: %s' % header)
     # read until DLE, ETX is reached.
     dle = False
     while not crc and i < len(data):
@@ -63,7 +65,7 @@ def dismantle_serial_packet(data):
         elif dle:
             # dle was set, but we got no etx here.
             # this seems to be an error.
-            raise Exception("DLE without sense detected.")
+            raise Exception('DLE without sense detected.')
         # we add this byte to our apdu.
         apdu += [b]
         i += 1
@@ -110,15 +112,15 @@ def ecr_log(data, incoming=False):
             data = repr(parse_represented_data(data))
             _logfile.write('= %s\n' % data)
         except Exception as e:
-            print("DEBUG: Cannot be represented: %s" % data)
+            print('DEBUG: Cannot be represented: %s' % data)
             print(e)
             _logfile.write('? did not understand ?\n')
             data = toHexString(data)
-        print("%s %s" % (incoming, data))
+        print('%s %s' % (incoming, data))
     except Exception:
         import traceback
         traceback.print_exc()
-        print("| error in log")
+        print('| error in log')
 
 
 class ECR(object):
@@ -138,13 +140,20 @@ class ECR(object):
 
     def __init__(self, device='/dev/ttyUSB0', password='123456'):
         """
-        Initializes an ECR object and connects to the serial device given
-        Fails if Serial Device is not found.
+        Initializes an ECR object and connects to the serial device
+        given. Fails if Serial Device is not found.
 
-        You can access the Device on low level as the `transport`
-        You can access the Protocol Handler on low level as `transmission`
+        You can access the Device on low level as the `transport`.
+        You can access the Protocol Handler on low level as
+        `transmission`.
+
+        Pass `tcp://` prefixed IP address and port for TCP/IP transport:
+        `tcp://192.168.1.163:20007`
         """
-        self.transport = transmission.SerialTransport(device)
+        if device.startswith('/'):
+            self.transport = SerialTransport(device)
+        elif device.startswith('tcp://'):
+            self.transport = TcpTransport(uri=device)
         # self.transport.slog = ecr_log
         self.daylog = []
         self.daylog_template = ''
@@ -156,10 +165,10 @@ class ECR(object):
         self.password = password
 
         if self.transport.connect():
-            self.transmitter = transmission.Transmission(self.transport)
+            self.transmitter = Transmission(self.transport)
             self._state_connected = True
         else:
-            raise Exception("ECR could not connect.")
+            raise Exception('ECR could not connect.')
 
     def register(self, config_byte):
         """
@@ -191,9 +200,10 @@ class ECR(object):
         do not use in production environment.
         """
         ret = self.transmit(
-            Registration(password=self.password,
-                         config_byte=Registration.generate_config(
-                             ecr_controls_admin=False),))
+            Registration(
+                password=self.password,
+                config_byte=Registration.generate_config(
+                    ecr_controls_admin=False),))
         if ret == TRANSMIT_OK:
             self._state_registered = True
         return ret
@@ -238,7 +248,7 @@ class ECR(object):
             except Exception:
                 import traceback
                 traceback.print_exc()
-                logging.error('Error in Daylog Template')
+                error('Error in Daylog Template')
         return result
 
     def last_printout(self):
@@ -277,13 +287,11 @@ class ECR(object):
                 return False
         else:
             # @todo: remove this.
-            print("transmit error?")
+            print('transmit error?')
         return False
 
     def restart(self):
-        """
-        restarts/resets the PT.
-        """
+        """Restarts/resets the PT."""
         self._state_registered = False
         return self.transmit(ResetTerminal())
 
@@ -293,15 +301,14 @@ class ECR(object):
         - restarts pt: @see self.restart()
         """
         self.transport.reset()
-        time.sleep(1)
+        if not self.transport.is_tcp:
+            sleep(1)
         ret = self.restart()
-        time.sleep(1)
+        if not self.transport.is_tcp:
+            sleep(1)
         return ret
 
-    def show_text(self,
-                  lines=None,
-                  duration=5,
-                  beeps=0):
+    def show_text(self, lines=None, duration=5, beeps=0):
         """
         displays a text on the PT screen for duration of seconds.
 
@@ -354,8 +361,9 @@ class ECR(object):
 
         use `last` property to access last packet transmitted.
         """
-        # we actually make a small sleep, allowing better flow.
-        time.sleep(0.2)
+        if not self.transport.is_tcp:
+            # we actually make a small sleep, allowing better flow.
+            sleep(0.2)
         transmission = self.transmitter.transmit(packet)
         return transmission
 
@@ -372,13 +380,12 @@ class ECR(object):
         status = self.status()
         while status:
             print(TERMINAL_STATUS_CODES.get(status, 'Unknown Status'))
-            time.sleep(2)
+            if not self.transport.is_tcp:
+                sleep(2)
             status = self.status()
 
     def listen(self, timeout=15):
-        """
-        dev function to simply listen.
-        """
+        """Dev function to simply listen."""
         ok, message = None, None
         while True:
             try:
@@ -388,7 +395,7 @@ class ECR(object):
             except Exception as e:
                 print(e)
                 continue
-            print("-mark-")
+            print('-mark-')
 
     def devprint_packets(self):
         """
@@ -423,6 +430,6 @@ if __name__ == '__main__':
     e = ECR()
     # e.end_of_day()
     e.show_text(['Hello world!', 'Testing', 'myself.'], 5, 0)
-    print("preparing for payment.")
+    print('preparing for payment.')
     e.get_ready()
     print(e.payment(50))
