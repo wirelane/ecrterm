@@ -1,4 +1,4 @@
-from socket import create_connection, socket
+from socket import create_connection
 
 from ecrterm.common import Transport
 
