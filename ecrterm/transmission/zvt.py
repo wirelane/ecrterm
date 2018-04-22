@@ -53,7 +53,8 @@ class ZVTTransmission(Transmission):
             whole sequence is finished.
         """
         if not self.is_master or self.is_waiting:
-            raise TransmissionException("Can't send until transmisson is ready")
+            raise TransmissionException(
+                "Can't send until transmisson is ready")
         self.is_master = False
         try:
             self.history += [(False, packet), ]
@@ -65,7 +66,8 @@ class ZVTTransmission(Transmission):
                 self.is_master = self.handle_packet_response(packet, response)
                 if not self.is_master:
                     try:
-                        success, response = self.transport.receive(self.actual_timeout)
+                        success, response = self.transport.receive(
+                            self.actual_timeout)
                         self.history += [(True, response)]
                     except common.TransportLayerException:
                         # some kind of timeout.
@@ -77,7 +79,8 @@ class ZVTTransmission(Transmission):
                             return TRANSMIT_TIMEOUT
                     if self.is_master and success:
                         # we actually have to handle a last packet
-                        stay_master = self.handle_packet_response(packet, response)
+                        stay_master = self.handle_packet_response(
+                            packet, response)
                         print("Is Master Read Ahead happened.")
                         self.is_master = stay_master
         except Exception as e:

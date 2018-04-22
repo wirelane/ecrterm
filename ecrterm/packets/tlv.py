@@ -29,23 +29,23 @@ class TLV(BMP):
         """ transforms a number into a TLV Length 
             returns list of bytes 
         """
-        if length >= 0x80: # 128 or more...
+        if length >= 0x80:  # 128 or more...
             # we need more than 1 byte.
             # lets see if we need only 2:
-            if length > 0xff: # 256 or more..
+            if length > 0xff:  # 256 or more..
                 # 0x82 followed by high byte and low byte.
                 hb = (length & 0xFF00) >> 8
                 lb = length & 0xFF
-                return [ 0x80 + 2, hb, lb ]
+                return [0x80 + 2, hb, lb]
             else:
-                return [0x80 + 1, length ]
+                return [0x80 + 1, length]
         else:
             # one byte is enough.
-            return [ length, ]
+            return [length, ]
 
     def parse(self, data):
         # just find out the length and skip that stuff
-        #if not data:
+        # if not data:
         #    # sometimes an empty TLV container happens.
         #    return []
         l1 = data[0]

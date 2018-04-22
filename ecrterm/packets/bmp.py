@@ -15,9 +15,11 @@ from ecrterm.utils import is_stringlike
 if sys.version_info[0] == 2:
     range = xrange
 
-def int_word_split(x, endian='>'): # default big endian.
+
+def int_word_split(x, endian='>'):  # default big endian.
     """ splits 2byte integer (sometimes called a word) into 2 byte list"""
     return conv.bs2hl(struct.pack('%sH' % endian, x & 0xFFFF))
+
 
 class BMPFactory(Dumpling):
     @classmethod
@@ -62,14 +64,17 @@ class BMPFactory(Dumpling):
         bmp._key = bmp_key
         rest = bmp.parse(data)
         if len(rest) and (len(rest) == len(data)):
-            raise NotImplemented("Bitmap Class without parsing mechanism detected")
+            raise NotImplemented(
+                "Bitmap Class without parsing mechanism detected")
         return bmp, rest
+
 
 class BMP(BMPFactory):
     _id = 0x0
     _data = None
     _descr = ""
     _key = ''
+
     def get_id(self):
         return self._id or 0x0
     id = property(get_id)
@@ -84,7 +89,7 @@ class BMP(BMPFactory):
             elif isinstance(data, list):
                 self._data = data
             else:
-                self._data = [ data ]
+                self._data = [data]
         self._rangecheck()
 
     def value(self):
@@ -122,7 +127,7 @@ class BMP(BMPFactory):
         >>> [ hex(i) for i in BMP.encode_fcd( 1234 ) ]                                                                                                 
         ['0xf1', '0xf2', '0xf3', '0xf4']
         """
-        return [ factor + int(i) for i in list(str(int(x)))]
+        return [factor + int(i) for i in list(str(int(x)))]
 
     @classmethod
     def decode_fcd(cls, number_list, factor=0xf0):
@@ -138,6 +143,7 @@ class BMP(BMPFactory):
                 break
         return ret
 
+
 class LVAR(BMP):
     """
         LVAR Abstract Class
@@ -145,8 +151,8 @@ class LVAR(BMP):
         ZVT Protocol.
         also implements bases for LLVar and LLLVar.
     """
-    _id = None # the lvar does not know its id from start.
-    LL = 0 #: length of length header minimum.
+    _id = None  # the lvar does not know its id from start.
+    LL = 0  # : length of length header minimum.
     _data = []
 
     def __init__(self, data=None):
@@ -170,25 +176,26 @@ class LVAR(BMP):
     def value(self):
         return conv.hl2bs(self._data)
 
-    def dump(self): # dump the bytes.
+    def dump(self):  # dump the bytes.
         """
             dumps the bytes of the LVAR as one list.
             the minimum length of the length header can be set with self.LL
         """
         ret = []
         if self._id:
-            ret = [ self._id ]
-        lines = [ self._data, ]
+            ret = [self._id]
+        lines = [self._data, ]
         for line in lines:
             l = LVAR.length(len(line))
             while len(l) < self.LL:
-                l = [ 0xF0 ] + l
+                l = [0xF0] + l
             if is_stringlike(line):
                 ret += l + conv.bs2hl(line)
             elif isinstance(line, list):
                 ret += l + line
             else:
-                raise TypeError("Line has unsupported type in LVAR: %s" % type(line))
+                raise TypeError(
+                    "Line has unsupported type in LVAR: %s" % type(line))
         return ret
 
     def parse(self, data):
@@ -200,8 +207,8 @@ class LVAR(BMP):
         l = BMP.decode_fcd(l)
         # get the data
         data = data[self.LL:]
-        self._data = data[:l] # conversion of any kinds ?
-        return data[l:] # we return the rest.
+        self._data = data[:l]  # conversion of any kinds ?
+        return data[l:]  # we return the rest.
 
     @classmethod
     def length(cls, length):
@@ -212,12 +219,14 @@ class LVAR(BMP):
         """
         return BMP.encode_fcd(length)
 
+
 class LLVAR(LVAR):
     """
         each LLVar Line has a length code of FxFy,
         where length = x *10 + y
     """
     LL = 2
+
 
 class LLLVAR(LVAR):
     """
@@ -226,10 +235,13 @@ class LLLVAR(LVAR):
     """
     LL = 3
 
+
 class FixedLength(BMP):
     _length = 0
+
     def get_length(self):
         return self._length
+
     def set_length(self, length):
         self._length = length
     length = property(get_length, set_length)
@@ -244,20 +256,22 @@ class FixedLength(BMP):
         ret = []
         # first encode our bitmap id.
         if self._id:
-            ret = [ self._id ]
+            ret = [self._id]
         if is_stringlike(self._data):
-            ret += [ ord(c) for c in self._data[:self.length]]
+            ret += [ord(c) for c in self._data[:self.length]]
         else:
             ret += self._data[:self.length]
         return ret
 
 # two simple classes (BCD and BYTE)
+
+
 class BCD(FixedLength):
     @classmethod
     def as_int(cls, a_list):
         ''' represent a bcd list as integer '''
         return int(''.join([str(a) for a in a_list]))
-    
+
     @classmethod
     def bcd_split(cls, b):
         """ splits a bcd byte into a tuple of numbers """
@@ -291,13 +305,13 @@ class BCD(FixedLength):
         """
             @param something: a list of numbers, all < 10
             @return: a list of bytes.
-            
+
             Note: this function fills up numbers missing with 0,
             except you tell strict to be True.
         """
         if is_stringlike(something):
             # you gave something like "123456"
-            something = [ int(x) for x in something ]
+            something = [int(x) for x in something]
         # check the length if even
         if len(something) % 2:
             something = [0] + something
@@ -329,7 +343,7 @@ class BCD(FixedLength):
         values = self.values()
         if not values:
             return ''
-        #return ''.join(values)
+        # return ''.join(values)
         return '%s' * len(values) % tuple(values)
 
     def __repr__(self):
@@ -342,13 +356,14 @@ class BCD(FixedLength):
         ret = []
         # first encode our bitmap id.
         if self._id:
-            ret = [ self._id ]
+            ret = [self._id]
         # now look up our length.
         # our data has to be same length !
         data = self._data[:]
         while len(data) < self._length:
             data = [00, ] + data
         return ret + data
+
 
 class BYTE(FixedLength):
     def __repr__(self):

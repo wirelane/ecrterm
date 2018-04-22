@@ -19,6 +19,8 @@ from ecrterm.transmission.signals import *
 from ecrterm.utils import ensure_bytes, is_stringlike
 
 SERIAL_DEBUG = False
+
+
 def std_serial_log(instance, data, incoming=False):
     try:
         if is_stringlike(incoming):
@@ -30,8 +32,10 @@ def std_serial_log(instance, data, incoming=False):
     except:
         print("| error in log")
 
+
 def noop(*args, **kwargs):
     pass
+
 
 class SerialMessage(object):
     """
@@ -40,6 +44,7 @@ class SerialMessage(object):
         CRC and double-DLEs included.
     """
     apdu = None
+
     def __init__(self, apdu=None):
         if is_stringlike(apdu):
             # try to get the list of bytes.
@@ -49,8 +54,8 @@ class SerialMessage(object):
         self.apdu = apdu
 
     def _get_crc(self):
-        data = conv.hl2bs(self.apdu + [ ETX ])
-        #print "crc for %s => %s" % ([hex(i) for i in self.apdu], hex(crc.crc_xmodem16(data)))
+        data = conv.hl2bs(self.apdu + [ETX])
+        # print "crc for %s => %s" % ([hex(i) for i in self.apdu], hex(crc.crc_xmodem16(data)))
         try:
             return crc.crc_xmodem16(data)
         except:
@@ -59,20 +64,23 @@ class SerialMessage(object):
 
     def _get_crc_l(self):
         return self._get_crc() & 0x00FF
+
     def _get_crc_h(self):
         return (self._get_crc() & 0xFF00) >> 8
     crc_l = property(_get_crc_l)
     crc_h = property(_get_crc_h)
+
     def crc(self):
-        return [ self.crc_l, self.crc_h ]
+        return [self.crc_l, self.crc_h]
 
     def enrich(self, apdu):
         # add 0x10 to each 0x10 in apdu
-        apdu = apdu[:] # since we use del later, it would occasionally hit the instance
+        # since we use del later, it would occasionally hit the instance
+        apdu = apdu[:]
         new_apdu = []
         while len(apdu):
             if apdu.count(DLE):
-                new_apdu += apdu[:apdu.index(DLE) + 1] + [ DLE ]
+                new_apdu += apdu[:apdu.index(DLE) + 1] + [DLE]
                 del apdu[:apdu.index(DLE) + 1]
             else:
                 new_apdu += apdu
@@ -81,16 +89,18 @@ class SerialMessage(object):
 
     def __repr__(self):
         return "SerialMessage (APDU: %s, CRC-L: %s CRC-H: %s)" % (
-                                    conv.toHexString(self.apdu),
-                                    hex(self.crc_l),
-                                    hex(self.crc_h))
+            conv.toHexString(self.apdu),
+            hex(self.crc_l),
+            hex(self.crc_h))
+
     def dump_message(self):
-        #if 0x10 in apdu:
+        # if 0x10 in apdu:
         apdu = self.enrich(self.apdu)
-        return [DLE, STX] + apdu + [ DLE, ETX, self.crc_l, self.crc_h]
+        return [DLE, STX] + apdu + [DLE, ETX, self.crc_l, self.crc_h]
 
     def as_bin(self):
         return conv.hl2bs(self.dump_message())
+
 
 class SerialTransport(common.Transport):
     SerialCls = serial.Serial
@@ -102,15 +112,15 @@ class SerialTransport(common.Transport):
 
     def connect(self, timeout=30):
         ser = self.SerialCls(
-                port=self.device,
-                baudrate=9600,
-                parity=serial.PARITY_NONE,
-                stopbits=serial.STOPBITS_TWO,
-                bytesize=serial.EIGHTBITS,
-                timeout=timeout, # set a timeout value, None for waiting forever
-                xonxoff=0, # disable software flow control
-                rtscts=0, # disable RTS/CTS flow control
-                )
+            port=self.device,
+            baudrate=9600,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_TWO,
+            bytesize=serial.EIGHTBITS,
+            timeout=timeout,  # set a timeout value, None for waiting forever
+            xonxoff=0,  # disable software flow control
+            rtscts=0,  # disable RTS/CTS flow control
+        )
         if ser.isOpen() == False:
             ser.open()
         # 8< got that from somwhere, not sure what it does:
@@ -138,7 +148,7 @@ class SerialTransport(common.Transport):
             try:
                 self.slog(conv.bs2hl(something))
             finally:
-                self.connection.write(ensure_bytes(something)) # !?
+                self.connection.write(ensure_bytes(something))  # !?
 
     def write_ack(self):
         # writes an ack.
@@ -175,16 +185,18 @@ class SerialTransport(common.Transport):
         # timeout to T1 after header.
         self.connection.timeout = TIMEOUT_T1
         while not crc:
-            b = ord(self.connection.read(1)) # read a byte.
+            b = ord(self.connection.read(1))  # read a byte.
             if b is None:
                 # timeout
-                raise common.TransportLayerException("Timeout T1 reading stream.")
+                raise common.TransportLayerException(
+                    "Timeout T1 reading stream.")
             if b == ETX and dle:
                 # dle was set, and this is ETX, so we are at the end.
                 # we read the CRC now.
                 crc = self.connection.read(2)
                 if not crc:
-                    raise common.TransportLayerException("Timeout T1 reading CRC")
+                    raise common.TransportLayerException(
+                        "Timeout T1 reading CRC")
                 else:
                     crc = conv.bs2hl(crc)
                 # and break
@@ -200,7 +212,8 @@ class SerialTransport(common.Transport):
             elif dle:
                 # dle was set, but we got no etx here.
                 # this seems to be an error.
-                raise common.TransportLayerException("DLE without sense detected.")
+                raise common.TransportLayerException(
+                    "DLE without sense detected.")
             # we add this byte to our apdu.
             apdu += [b]
         self.slog(header + apdu + [DLE, ETX] + crc, True)
@@ -219,7 +232,7 @@ class SerialTransport(common.Transport):
             self.write_ack()
             return True, msg
         else:
-            #self.write_nak()
+            # self.write_nak()
             return False, msg
 
     def receive(self, timeout=TIMEOUT_T2):
@@ -258,22 +271,25 @@ class SerialTransport(common.Transport):
                 return True
             elif acknowledge == ensure_bytes(chr(NAK)):
                 # not everything allright.
-                #if tries < 3:
+                # if tries < 3:
                 #    return self.send_message(message, tries + 1, no_answer)
-                #else:
+                # else:
                 raise common.TransportLayerException("Could not send message")
             elif not acknowledge:
                 # this happens quite a lot with the ingenico devices.
                 # possibly a workaround would be nice.
-                raise common.TransportTimeoutException("No Answer, Possible Timeout")
+                raise common.TransportTimeoutException(
+                    "No Answer, Possible Timeout")
             else:
-                raise common.TransportLayerException("Unknown Acknowledgment Byte %s" % conv.bs2hl(acknowledge))
+                raise common.TransportLayerException(
+                    "Unknown Acknowledgment Byte %s" % conv.bs2hl(acknowledge))
 
     def send(self, apdu, tries=0, no_wait=False):
         """
             automatically converts an apdu into a message.
         """
         return self.send_message(SerialMessage(apdu), tries, no_wait)
+
 
 # self test
 if __name__ == '__main__':

@@ -195,7 +195,7 @@ def toHexString(bytes=None, format=0):
 
     try:
         from string import rstrip
-    except ImportError: # Python3
+    except ImportError:  # Python3
         def rstrip(s, chars=None):
             return s.rstrip(chars)
 

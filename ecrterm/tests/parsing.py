@@ -29,7 +29,7 @@ class TestParsingMechanisms(unittest.TestCase):
         for packet in PACKETS:
             rep = parse_represented_data(conv.toHexString(packet().to_list()))
             self.assertEqual(rep.__class__,
-                                 packet)
+                             packet)
 
     def test_version_completion(self):
         # following completion is sent by the PT with version on statusenquiry:
@@ -37,7 +37,6 @@ class TestParsingMechanisms(unittest.TestCase):
         # small test to test the completion with software version to be recognized.
         rep = parse_represented_data(data_expected)
         self.assertEqual(rep.__class__, Completion)
-
 
     def test_parsing_two(self):
         """
@@ -53,7 +52,7 @@ class TestParsingMechanisms(unittest.TestCase):
             # 04 0F
             '10 02 04 0F 37 27 00 04 00 00 00 00 40 00 49 09 78 0C 09 38 48 0D 04 25 22 F1 F1 59 66 66 66 66'\
             'D2 00 21 22 01 00 17 00 01 87 01 75 0B 61 39 95 19 40 29 60 09 99 14 0E 05 12 8A 02 10 03 90 8C',
-                   ]
+        ]
         i = 0
         for packet in PACKETS:
             rep = parse_represented_data(packet)
@@ -61,6 +60,7 @@ class TestParsingMechanisms(unittest.TestCase):
             if not isinstance(rep, Packet):
                 raise AssertionError("Packet could not be parsed: #%s" % i)
             i += 1
+
 
 if __name__ == '__main__':
     unittest.main()

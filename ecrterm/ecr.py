@@ -21,7 +21,10 @@ from ecrterm.utils import is_stringlike
 class A(object):
     def write(self, *args, **kwargs):
         pass
+
+
 _logfile = A()
+
 
 def dismantle_serial_packet(data):
     apdu = []
@@ -38,7 +41,7 @@ def dismantle_serial_packet(data):
     # read until DLE, ETX is reached.
     dle = False
     while not crc and i < len(data):
-        b = data[i] # read a byte.
+        b = data[i]  # read a byte.
         if b == ETX and dle:
             # dle was set, and this is ETX, so we are at the end.
             # we read the CRC now.
@@ -62,10 +65,11 @@ def dismantle_serial_packet(data):
         i += 1
     return crc, apdu
 
+
 def parse_represented_data(data):
     # represented data
     if is_stringlike(data):
-        # we assume a bytelist like 10 02 03.... 
+        # we assume a bytelist like 10 02 03....
         data = conv.toBytes(data)
     # first of all, serial data starts with 10 02, so everything
     # starting with 10 will be assumed as "serial packet" and first "demantled"
@@ -83,6 +87,7 @@ def parse_represented_data(data):
     # then we create the packet and return that.
     p = Packet.parse(data)
     return p
+
 
 def ecr_log(data, incoming=False):
     try:
@@ -111,6 +116,7 @@ def ecr_log(data, incoming=False):
         traceback.print_exc()
         print("| error in log")
 
+
 class ECR(object):
     transmitter = None
     transport = None
@@ -130,7 +136,7 @@ class ECR(object):
         """
             Initializes an ECR object and connects to the serial device given
             Fails if Serial Device is not found.
-            
+
             You can access the Device on low level as the `transport`
             You can access the Protocol Handler on low level as `transmission`
         """
@@ -163,18 +169,17 @@ class ECR(object):
             kwargs['config_byte'] = config_byte
 
         ret = self.transmit(Registration(**kwargs))
-        
+
         if ret == TRANSMIT_OK:
             # get the terminal-id if its there.
             for inc, packet in self.transmitter.last_history:
                 if inc and isinstance(packet, Completion):
                     if 'tid' in packet.bitmaps_as_dict().keys():
                         self.terminal_id = packet.bitmaps_as_dict()\
-                                            .get('tid', BCD(0)).value()
+                            .get('tid', BCD(0)).value()
             # remember this.
             self._state_registered = True
         return ret
-
 
     def register_unlocked(self):
         """
@@ -182,13 +187,13 @@ class ECR(object):
             do not use in production environment.
         """
         ret = self.transmit(
-                    Registration(password=self.password,
-                        config_byte=Registration.generate_config(
-                            ecr_controls_admin=False),))
+            Registration(password=self.password,
+                         config_byte=Registration.generate_config(
+                             ecr_controls_admin=False),))
         if ret == TRANSMIT_OK:
             self._state_registered = True
         return ret
-    
+
     def _end_of_day_info_packet(self, history=None):
         '''
             search for an end of day packet status information in the last packets
@@ -198,7 +203,7 @@ class ECR(object):
         status_info = None
         plist = history or self.transmitter.last_history
         for inc, packet in plist:
-            if inc: # incoming
+            if inc:  # incoming
                 if isinstance(packet, StatusInformation):
                     status_info = packet
         if status_info:
@@ -207,12 +212,11 @@ class ECR(object):
             eod_info['terminal-id'] = self.terminal_id
             return eod_info
 
-
     def end_of_day(self):
         """
             - sends an end of day packet.
             - saves the log in `daylog`
-            
+
             @returns: 0 if there were no protocol errors.
         """
         #old_histoire = self.transmitter.history
@@ -221,7 +225,7 @@ class ECR(object):
         result = self.transmit(EndOfDay(self.password))
         # now save the log
         self.daylog = self.last_printout()
-        
+
         if not self.daylog:
             # there seems to be no printout. we search in statusinformation.
             eod_info = self._end_of_day_info_packet()
@@ -243,7 +247,7 @@ class ECR(object):
             inc, packet = entry
             #old_histoire += [(inc, packet)]
             if inc and isinstance(packet, PrintLine):
-                printout += [ packet.fixed_values['text'] ]
+                printout += [packet.fixed_values['text']]
         return printout
 
     def payment(self, amount_cent=50):
@@ -254,9 +258,9 @@ class ECR(object):
             throws exceptions.
         """
         pkg = Authorisation(
-                    amount=amount_cent, # in cents.
-                    currency_code=978, #euro, only one that works, can be skipped.
-                    )
+            amount=amount_cent,  # in cents.
+            currency_code=978,  # euro, only one that works, can be skipped.
+        )
         code = self.transmit(pkg)
 
         if code == 0:
@@ -295,11 +299,11 @@ class ECR(object):
                   beeps=0):
         """
             displays a text on the PT screen for duration of seconds.
-            
+
             @param lines: a list of strings.
             @param duration: 0 for forever.
             @param beeps: make some noise.
-            
+
             @note: any error due to wrong strings given are not checked.
         """
         lines = lines or ['Hello world!', ]
@@ -321,7 +325,7 @@ class ECR(object):
             errors:
             returns None if no status was transmitted.
             returns False on transmit errors.
-            
+
             to check for the status code:
                 common.TERMINAL_STATUS_CODES.get( status, 'Unknown' )
         """
@@ -330,18 +334,18 @@ class ECR(object):
             if isinstance(self.last.completion, Completion):
                 # try to get version
                 if not self.version:
-                    self.version = self.last.completion.fixed_values.get('sw-version', None)
+                    self.version = self.last.completion.fixed_values.get(
+                        'sw-version', None)
                 return self.last.completion.fixed_values.get('terminal-status', None)
             # no completion means some error.
         return False
-
 
     def transmit(self, packet):
         """
             transmits a packet, therefore introducing the protocol cascade.
             rewrite this function if you want packets be routed anywhere
             since the whole ECR Object uses this function to transmit.
-            
+
             use `last` property to access last packet transmitted.
         """
         # we actually make a small sleep, allowing better flow.
@@ -406,11 +410,12 @@ class ECR(object):
     def parse_str(self, s):
         return parse_represented_data(s)
 
+
 if __name__ == '__main__':
     _logfile = open('./terminallog.txt', 'aw')
     _logfile.write('-MARK-\n')
     e = ECR()
-    #e.end_of_day()
+    # e.end_of_day()
     e.show_text(['Hello world!', 'Testing', 'myself.'], 5, 0)
     print("preparing for payment.")
     e.get_ready()

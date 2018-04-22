@@ -27,7 +27,7 @@ class Transmission(object):
         self.transport = transport
         self.is_master = True
         self.is_waiting = False
-        self.last = None # saves last sent master
+        self.last = None  # saves last sent master
         self.log_list = []
         self.history = []
         self.last_history = []
@@ -70,7 +70,8 @@ class Transmission(object):
             whole sequence is finished.
         """
         if not self.is_master or self.is_waiting:
-            raise TransmissionException("Can't send until transmisson is ready")
+            raise TransmissionException(
+                "Can't send until transmisson is ready")
         self.is_master = False
         self.last = packet
         try:
@@ -80,10 +81,12 @@ class Transmission(object):
             # we sent the packet.
             # now lets wait until we get master back.
             while not self.is_master:
-                self.is_master = self.handle_packet_response(self.last, response)
+                self.is_master = self.handle_packet_response(
+                    self.last, response)
                 if not self.is_master:
                     try:
-                        success, response = self.transport.receive(self.actual_timeout)
+                        success, response = self.transport.receive(
+                            self.actual_timeout)
                         history += [(True, response)]
                     except common.TransportLayerException:
                         # some kind of timeout.
@@ -95,7 +98,8 @@ class Transmission(object):
                             return TRANSMIT_TIMEOUT
                     if self.is_master and success:
                         # we actually have to handle a last packet
-                        stay_master = self.handle_packet_response(packet, response)
+                        stay_master = self.handle_packet_response(
+                            packet, response)
                         print("Is Master Read Ahead happened.")
                         self.is_master = stay_master
         except Exception as e:

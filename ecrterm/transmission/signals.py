@@ -2,8 +2,8 @@
 TIMEOUT_T1 = 0.2
 TIMEOUT_T2 = 15
 TIMEOUT_T4 = 180
-TIMEOUT_T4_DEFAULT = 180 # sec
-TIMEOUT_T3 = 5 # sec
+TIMEOUT_T4_DEFAULT = 180  # sec
+TIMEOUT_T3 = 5  # sec
 
 #: command separator
 DLE = 0x10

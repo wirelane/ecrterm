@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-    Misc. Tests.
-    
-    @author g4b
+Misc. Tests.
+
+@author g4b
 """
 import unittest
 
@@ -28,8 +28,8 @@ class TestSequenceFunctions(unittest.TestCase):
 
         # now test the full ones
         password = '123456'
-        bcd_pass = [ 0x12, 0x34, 0x56 ]
-        password_nums = [ int(x) for x in password ]
+        bcd_pass = [0x12, 0x34, 0x56]
+        password_nums = [int(x) for x in password]
         self.assertEqual(BCD.encode_bcd(password),
                          bcd_pass)
         self.assertEqual(BCD.decode_bcd(bcd_pass),
@@ -37,24 +37,23 @@ class TestSequenceFunctions(unittest.TestCase):
         # test instantiation:
         b = BCD(password)
         b._length = 3
-        #print b.values()
+        # print b.values()
         self.assertEqual(b.value(), password)
         # test dumping
         b = BCD(1)
         b._length = 3
-        b._id = 666 # this is actually impossible, but manually valid.
+        b._id = 666  # this is actually impossible, but manually valid.
         d = b.dump()
         self.assertEqual(d,
                          [666, 0, 0, 1])
-
 
     def test_bmp(self):
         """
             test if the classmethods in bmp work
         """
         bignum = 4321056789
-        fcd_seq = [ 0xf4, 0xf3, 0xf2, 0xf1, 0xf0,
-              0xf5, 0xf6, 0xf7, 0xf8, 0xf9]
+        fcd_seq = [0xf4, 0xf3, 0xf2, 0xf1, 0xf0,
+                   0xf5, 0xf6, 0xf7, 0xf8, 0xf9]
         self.assertEqual(
             BCD.encode_fcd(bignum),
             fcd_seq)
@@ -64,6 +63,7 @@ class TestSequenceFunctions(unittest.TestCase):
 
     def test_llvar(self):
         pass
+
 
 if __name__ == '__main__':
     unittest.main()
