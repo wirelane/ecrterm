@@ -241,9 +241,9 @@ class APDUPacket(object):
         if isinstance(blob, list):
             # allright.
             # first we detect our packetclass
-            Kls = Packets.detect(blob[:2])
-            if Kls:
-                instance = Kls()
+            PacketClass = Packets.detect(blob[:2])
+            if PacketClass:
+                instance = PacketClass()
                 # fix for multipackets:
                 if instance.cmd_instr is None:
                     instance.cmd_instr = blob[1]

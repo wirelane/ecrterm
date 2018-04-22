@@ -17,9 +17,8 @@ from unittest import TestCase, main
 
 from ecrterm.conv import toHexString
 from ecrterm.packets.base_packets import (
-    Authorisation, Diagnosis, Initialisation, PacketReceived,
-    PacketReceivedError, PrintLine, Registration, ResetTerminal, ShowText,
-    StatusEnquiry)
+    Authorisation, Diagnosis, DisplayText, Initialisation, PacketReceived,
+    PacketReceivedError, PrintLine, Registration, ResetTerminal, StatusEnquiry)
 from ecrterm.transmission.signals import ACK, NAK
 from ecrterm.transmission.transport_serial import SerialMessage
 
@@ -94,15 +93,15 @@ class TestCaseDataEncoding(TestCase):
 
     def test_packet_showtext(self):
         data_expected = \
-            '10 02 06 E0 25 F2 F1 F5 45 49 4E 47 45 42 45 4E 20 55 4E 44 20 ' \
-            '4F 4B F1 F1 F6 46 41 48 52 45 52 4E 55 4D 4D 45 52 20 20 20 20 ' \
-            '10 03 5A BA'
-        lines = ['FAHRERNUMMER    ', 'EINGEBEN UND OK', ]
+            '10 02 06 E0 25 F1 F1 F6 46 41 48 52 45 52 4E 55 4D 4D 45 52 20 ' \
+            '20 20 20 F2 F1 F5 45 49 4E 47 45 42 45 4E 20 55 4E 44 20 4F 4B ' \
+            '10 03 DE CD'
+        lines = ['FAHRERNUMMER    ', 'EINGEBEN UND OK']
+        # FAHRERNUMMER:
         # F1 F1 F6 46 41 48 52 45 52 4E 55 4D 4D 45 52 20 20 20 20
-        # //FAHRERNUMMER
+        # EINGEBEN UND OK:
         # F2 F1 F5 45 49 4E 47 45 42 45 4E 20 55 4E 44 20 4F 4B
-        # //EINGEBEN UND OK
-        pk = ShowText(
+        pk = DisplayText(
             # display_duration=0,
             line1=lines[0],
             # beeps=5,

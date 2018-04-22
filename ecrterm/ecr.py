@@ -15,8 +15,8 @@ from ecrterm.conv import bs2hl, toBytes, toHexString
 from ecrterm.exceptions import TransportLayerException
 from ecrterm.packets.apdu import Packets
 from ecrterm.packets.base_packets import (
-    Authorisation, Completion, EndOfDay, Packet, PrintLine, Registration,
-    ResetTerminal, ShowText, StatusEnquiry, StatusInformation)
+    Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
+    Registration, ResetTerminal, StatusEnquiry, StatusInformation)
 from ecrterm.packets.bmp import BCD
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.utils import is_stringlike
@@ -319,7 +319,7 @@ class ECR(object):
         for line in lines[:self.MAX_TEXT_LINES]:
             kw['line%s' % i] = line
             i += 1
-        return self.transmit(ShowText(**kw))
+        return self.transmit(DisplayText(**kw))
 
     def status(self):
         """

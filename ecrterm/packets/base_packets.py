@@ -252,7 +252,7 @@ Packets.register(Initialisation)
 # --- Text Related ---
 
 
-class ShowText(Packet):
+class DisplayText(Packet):
     """
     06 E0
     chapters: bzt 3.2.26, pt 2.24
@@ -266,10 +266,10 @@ class ShowText(Packet):
         'line6', 'line7', 'line8', 'beeps']
 
 
-Packets.register(ShowText)
+Packets.register(DisplayText)
 
 
-class ShowTextIntInput(Packet):
+class DisplayTextIntInput(Packet):
     """
     06 E2
     text output with numerical input.
@@ -277,7 +277,7 @@ class ShowTextIntInput(Packet):
     cmd_instr = 0xe2
 
 
-Packets.register(ShowTextIntInput)
+Packets.register(DisplayTextIntInput)
 
 
 class Completion(Packet):
