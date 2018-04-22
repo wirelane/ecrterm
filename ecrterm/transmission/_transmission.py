@@ -53,7 +53,7 @@ class Transmission(object):
             ret = self._transmit(packet, self.last_history)
             self.history += self.last_history
             return ret
-        except:
+        except Exception:
             self.history += self.last_history
             raise
 

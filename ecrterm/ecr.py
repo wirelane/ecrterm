@@ -104,7 +104,7 @@ def ecr_log(data, incoming=False):
         # logit to the logfile
         try:
             _logfile.write('%s %s\n' % (incoming, toHexString(data)))
-        except:
+        except Exception:
             pass
         try:
             data = repr(parse_represented_data(data))
@@ -115,7 +115,7 @@ def ecr_log(data, incoming=False):
             _logfile.write('? did not understand ?\n')
             data = toHexString(data)
         print("%s %s" % (incoming, data))
-    except:
+    except Exception:
         import traceback
         traceback.print_exc()
         print("| error in log")
@@ -235,7 +235,7 @@ class ECR(object):
             eod_info = self._end_of_day_info_packet()
             try:
                 self.daylog = (self.daylog_template % eod_info).split('\n')
-            except:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 logging.error('Error in Daylog Template')

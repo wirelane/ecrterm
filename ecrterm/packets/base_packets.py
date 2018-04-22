@@ -304,7 +304,7 @@ class Completion(Packet):
                 else:
                     self.fixed_values = {}
                 return data
-            except:
+            except Exception:
                 pass
         return data
 

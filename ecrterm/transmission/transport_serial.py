@@ -29,7 +29,7 @@ def std_serial_log(instance, data, incoming=False):
             print("< %s" % toHexString(data))
         else:
             print("> %s" % toHexString(data))
-    except:
+    except Exception:
         print("| error in log")
 
 
@@ -57,7 +57,7 @@ class SerialMessage(object):
         data = hl2bs(self.apdu + [ETX])
         try:
             return crc_xmodem16(data)
-        except:
+        except Exception:
             print(self.apdu)
             raise
 

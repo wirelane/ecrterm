@@ -107,7 +107,7 @@ def toBytes(bytestring):
     try:
         return reduce(lambda x, y: x + [int(y, 16)], unpack(
             '2s' * (len(packedstring) // 2), packedstring), [])
-    except:
+    except Exception:
         raise TypeError('not a string representing a list of bytes')
 
 
