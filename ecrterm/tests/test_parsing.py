@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-<
 """
-    Incoming Packets should be always parsable.
-    this test tries to look at the parser in detail.
+Incoming Packets should be always parsable.
+this test tries to look at the parser in detail.
 """
 from logging import info
 from unittest import TestCase, main
@@ -14,19 +13,15 @@ from ecrterm.packets.base_packets import Completion, Packet
 
 class TestParsingMechanisms(TestCase):
 
-    def setUp(self):
-        pass
-
     def test_all_packets(self):
         """
-            create packets, dump their binary data and try to find them
-            out again!
+        Create packets, dump their binary data and compare them to their
+        expected versions.
         """
         PACKETS = Packets.packets.values()
         for packet in PACKETS:
             rep = parse_represented_data(conv.toHexString(packet().to_list()))
-            self.assertEqual(rep.__class__,
-                             packet)
+            self.assertEqual(rep.__class__, packet)
 
     def test_version_completion(self):
         # following completion is sent by the PT with version on
