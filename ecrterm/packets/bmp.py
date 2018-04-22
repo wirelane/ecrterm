@@ -1,24 +1,22 @@
 # -*- coding: utf-8 -*-
 """
     Implementation of the Bitmap Variable Layer
-    
+
     Each variable in the protocol is saved into a bitmap.
 
 """
-import struct
-import sys
+from struct import pack
+
+from six.moves import range
 
 from ecrterm import conv
 from ecrterm.common import Dumpling
 from ecrterm.utils import is_stringlike
 
-if sys.version_info[0] == 2:
-    range = xrange
-
 
 def int_word_split(x, endian='>'):  # default big endian.
     """ splits 2byte integer (sometimes called a word) into 2 byte list"""
-    return conv.bs2hl(struct.pack('%sH' % endian, x & 0xFFFF))
+    return conv.bs2hl(pack('%sH' % endian, x & 0xFFFF))
 
 
 class BMPFactory(Dumpling):
@@ -124,7 +122,7 @@ class BMP(BMPFactory):
         """
         Each digit in the number is broken up and added to FACTOR sequentially.
         Note: x has to be a number.
-        >>> [ hex(i) for i in BMP.encode_fcd( 1234 ) ]                                                                                                 
+        >>> [ hex(i) for i in BMP.encode_fcd( 1234 ) ]
         ['0xf1', '0xf2', '0xf3', '0xf4']
         """
         return [factor + int(i) for i in list(str(int(x)))]
@@ -186,13 +184,13 @@ class LVAR(BMP):
             ret = [self._id]
         lines = [self._data, ]
         for line in lines:
-            l = LVAR.length(len(line))
-            while len(l) < self.LL:
-                l = [0xF0] + l
+            length = LVAR.length(len(line))
+            while len(length) < self.LL:
+                length = [0xF0] + length
             if is_stringlike(line):
-                ret += l + conv.bs2hl(line)
+                ret += length + conv.bs2hl(line)
             elif isinstance(line, list):
-                ret += l + line
+                ret += length + line
             else:
                 raise TypeError(
                     "Line has unsupported type in LVAR: %s" % type(line))
@@ -203,12 +201,12 @@ class LVAR(BMP):
             do the exact opposite of dump.
         """
         # read the length
-        l = data[:self.LL]
-        l = BMP.decode_fcd(l)
+        length = data[:self.LL]
+        length = BMP.decode_fcd(length)
         # get the data
         data = data[self.LL:]
-        self._data = data[:l]  # conversion of any kinds ?
-        return data[l:]  # we return the rest.
+        self._data = data[:length]  # conversion of any kinds ?
+        return data[length:]  # we return the rest.
 
     @classmethod
     def length(cls, length):

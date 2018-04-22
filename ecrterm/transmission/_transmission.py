@@ -2,13 +2,10 @@
 Transmission Basics.
 @author g4b
 """
-from ecrterm import common
+from ecrterm.exceptions import TransmissionException, TransportLayerException
 from ecrterm.packets.base_packets import PacketReceived
-from ecrterm.transmission.signals import *
-
-
-class TransmissionException(common.ApplicationLayerException):
-    pass
+from ecrterm.transmission.signals import (
+    TIMEOUT_T4_DEFAULT, TRANSMIT_ERROR, TRANSMIT_OK, TRANSMIT_TIMEOUT)
 
 
 class Transmission(object):
@@ -67,7 +64,7 @@ class Transmission(object):
         """
         if not self.is_master or self.is_waiting:
             raise TransmissionException(
-                "Can't send until transmisson is ready")
+                'Can\'t send until transmisson is ready')
         self.is_master = False
         self.last = packet
         try:
@@ -84,7 +81,7 @@ class Transmission(object):
                         success, response = self.transport.receive(
                             self.actual_timeout)
                         history += [(True, response)]
-                    except common.TransportLayerException:
+                    except TransportLayerException:
                         # some kind of timeout.
                         # if we are already master, we can bravely ignore this.
                         if self.is_master:
@@ -96,7 +93,7 @@ class Transmission(object):
                         # we actually have to handle a last packet
                         stay_master = self.handle_packet_response(
                             packet, response)
-                        print("Is Master Read Ahead happened.")
+                        print('Is Master Read Ahead happened.')
                         self.is_master = stay_master
         except Exception as e:
             self.is_master = True

@@ -50,7 +50,8 @@ def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True,
         try:
             if not errors:
                 if isinstance(e.last.completion, packets.Completion):
-                    return e.last.completion.fixed_values.get('sw-version', True) or True
+                    return e.last.completion.fixed_values.get(
+                        'sw-version', True) or True
                 return True
             return False
         finally:

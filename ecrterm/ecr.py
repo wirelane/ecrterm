@@ -11,8 +11,14 @@ import time
 
 from ecrterm import transmission
 from ecrterm.common import TERMINAL_STATUS_CODES
-from ecrterm.packets import *
-from ecrterm.transmission.signals import *
+from ecrterm.conv import bs2hl, toBytes, toHexString
+from ecrterm.exceptions import TransportLayerException
+from ecrterm.packets.apdu import Packets
+from ecrterm.packets.base_packets import (
+    Authorisation, Completion, EndOfDay, Packet, PrintLine, Registration,
+    ResetTerminal, ShowText, StatusEnquiry, StatusInformation)
+from ecrterm.packets.bmp import BCD
+from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.utils import is_stringlike
 
 
@@ -29,13 +35,13 @@ def dismantle_serial_packet(data):
     crc = None
     i = 2
     header = data[:i]
-    # header = conv.bs2hl(header)
+    # header = bs2hl(header)
     # test if there was a transmission:
     if header == []:
-        raise common.TransportLayerException('No Header')
+        raise TransportLayerException('No Header')
     # test our header to be valid
     if header != [DLE, STX]:
-        raise common.TransportLayerException("Header Error: %s" % header)
+        raise TransportLayerException("Header Error: %s" % header)
     # read until DLE, ETX is reached.
     dle = False
     while not crc and i < len(data):
@@ -68,13 +74,13 @@ def parse_represented_data(data):
     # represented data
     if is_stringlike(data):
         # we assume a bytelist like 10 02 03....
-        data = conv.toBytes(data)
+        data = toBytes(data)
     # first of all, serial data starts with 10 02, so everything
     # starting with 10 will be assumed as "serial packet" and first "demantled"
     if data[0] == DLE:
         try:
             crc, data = dismantle_serial_packet(data)
-        except common.TransportLayerException:
+        except TransportLayerException:
             pass
     elif data[0] == ACK:
         if len(data) == 1:
@@ -94,10 +100,10 @@ def ecr_log(data, incoming=False):
         else:
             incoming = '>'
         if is_stringlike(data):
-            data = conv.bs2hl(data)
+            data = bs2hl(data)
         # logit to the logfile
         try:
-            _logfile.write('%s %s\n' % (incoming, conv.toHexString(data)))
+            _logfile.write('%s %s\n' % (incoming, toHexString(data)))
         except:
             pass
         try:
@@ -107,7 +113,7 @@ def ecr_log(data, incoming=False):
             print("DEBUG: Cannot be represented: %s" % data)
             print(e)
             _logfile.write('? did not understand ?\n')
-            data = conv.toHexString(data)
+            data = toHexString(data)
         print("%s %s" % (incoming, data))
     except:
         import traceback
@@ -193,10 +199,10 @@ class ECR(object):
         return ret
 
     def _end_of_day_info_packet(self, history=None):
-        '''
-            search for an end of day packet status information in the last packets
-            can also search in any history list.
-        '''
+        """
+        Search for an end of day packet status information in the last
+        packets, can also search in any history list.
+        """
         # helper function to scan for end of day information via packets.
         status_info = None
         plist = history or self.transmitter.last_history
@@ -217,8 +223,8 @@ class ECR(object):
 
             @returns: 0 if there were no protocol errors.
         """
-        #old_histoire = self.transmitter.history
-        #self.transmitter.history = []
+        # old_histoire = self.transmitter.history
+        # self.transmitter.history = []
         # we send the packet
         result = self.transmit(EndOfDay(self.password))
         # now save the log
@@ -237,13 +243,14 @@ class ECR(object):
 
     def last_printout(self):
         """
-            returns all printlines from the last history.
-            @todo: TextBlock support - if some printer decides to do it that way.
+        returns all printlines from the last history.
+        @todo: TextBlock support - if some printer decides to do it that
+        way.
         """
         printout = []
         for entry in self.transmitter.last_history:
             inc, packet = entry
-            #old_histoire += [(inc, packet)]
+            # old_histoire += [(inc, packet)]
             if inc and isinstance(packet, PrintLine):
                 printout += [packet.fixed_values['text']]
         return printout
@@ -334,7 +341,8 @@ class ECR(object):
                 if not self.version:
                     self.version = self.last.completion.fixed_values.get(
                         'sw-version', None)
-                return self.last.completion.fixed_values.get('terminal-status', None)
+                return self.last.completion.fixed_values.get(
+                    'terminal-status', None)
             # no completion means some error.
         return False
 

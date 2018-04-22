@@ -1,22 +1,20 @@
-# -*- coding: utf-8 -*-
-
 """
-    TLV Container Format.
-    
-        TAG FIELD:
-            # first byte:
-            # b8,b7: class visibility    
-            # b6: data object constructed?
-            # b5-b2: tag number.
-            # b1: if 1, continue at next byte.
-            
-            # next byte:
-            b8: last byte?
-            ... number.
-            
-        LENGTH:
-            # b8 if 0, length is a 7 bit number.
-            # b8 if 1, this byte only codes how many follow.
+TLV Container Format.
+
+    TAG FIELD:
+        # first byte:
+        # b8,b7: class visibility
+        # b6: data object constructed?
+        # b5-b2: tag number.
+        # b1: if 1, continue at next byte.
+
+        # next byte:
+        b8: last byte?
+        ... number.
+
+    LENGTH:
+        # b8 if 0, length is a 7 bit number.
+        # b8 if 1, this byte only codes how many follow.
 """
 from ecrterm.packets.bmp import BMP
 
@@ -26,8 +24,8 @@ class TLV(BMP):
 
     @classmethod
     def length(cls, length):
-        """ transforms a number into a TLV Length 
-            returns list of bytes 
+        """
+        Transforms a number into a TLV Length ,returns list of bytes.
         """
         if length >= 0x80:  # 128 or more...
             # we need more than 1 byte.

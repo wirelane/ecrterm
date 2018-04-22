@@ -189,91 +189,90 @@ TERMINAL_STATUS_CODES = {
 
 
 DEBUG_PACKET_NAME = {
-    [0x0F, None]: 'RFU for proprietary applications, the utilisation for '
+    (0x0F, None): 'RFU for proprietary applications, the utilisation for '
     'particular cases should be clarified between manufacturers',
-    [0x01, 0x01]: 'RFU',
-    [0x04, 0x01]: 'Set Date and Time in ECR',
-    [0x04, 0x0E]: 'Menu-Request',
-    [0x04, 0x0F]: 'Status-Information',
-    [0x04, 0xFF]: 'Intermediate-Statusinformation',
-    [0x05, 0x01]: 'Status-Enquiry',
-    [0x05, 0xFF]: 'RFU',
-    [0x06, 0x00]: 'Registration',
-    [0x06, 0x01]: 'Authorisation',
-    [0x06, 0x02]: 'Log-Off',
-    [0x06, 0x03]: 'Account Balance Request',
-    [0x06, 0x09]: 'Prepaid Top-Up',
-    [0x06, 0x0A]: 'Tax Free',
-    [0x06, 0x0B]: 'RFU',
-    [0x06, 0x0C]: 'TIP',
-    [0x06, 0x0F]: 'Completion',
-    [0x06, 0x10]: 'Send Turnover Totals',
-    [0x06, 0x11]: 'RFU',
-    [0x06, 0x12]: 'Print Turnover Receipts',
-    [0x06, 0x18]: 'Reset Terminal',
-    [0x06, 0x1A]: 'Print System Configuration',
-    [0x06, 0x1B]: 'Set/Reset Terminal-ID',
-    [0x06, 0x1E]: 'Abort',
-    [0x06, 0x20]: 'Repeat Receipt',
-    [0x06, 0x21]: 'Telephonic Authorisation',
-    [0x06, 0x22]: 'Pre-Authorisation/Reservation',
-    [0x06, 0x23]:
+    (0x01, 0x01): 'RFU',
+    (0x04, 0x01): 'Set Date and Time in ECR',
+    (0x04, 0x0E): 'Menu-Request',
+    (0x04, 0x0F): 'Status-Information',
+    (0x04, 0xFF): 'Intermediate-Statusinformation',
+    (0x05, 0x01): 'Status-Enquiry',
+    (0x05, 0xFF): 'RFU',
+    (0x06, 0x00): 'Registration',
+    (0x06, 0x01): 'Authorisation',
+    (0x06, 0x02): 'Log-Off',
+    (0x06, 0x03): 'Account Balance Request',
+    (0x06, 0x09): 'Prepaid Top-Up',
+    (0x06, 0x0A): 'Tax Free',
+    (0x06, 0x0B): 'RFU',
+    (0x06, 0x0C): 'TIP',
+    (0x06, 0x0F): 'Completion',
+    (0x06, 0x10): 'Send Turnover Totals',
+    (0x06, 0x11): 'RFU',
+    (0x06, 0x12): 'Print Turnover Receipts',
+    (0x06, 0x18): 'Reset Terminal',
+    (0x06, 0x1A): 'Print System Configuration',
+    (0x06, 0x1B): 'Set/Reset Terminal-ID',
+    (0x06, 0x1E): 'Abort',
+    (0x06, 0x20): 'Repeat Receipt',
+    (0x06, 0x21): 'Telephonic Authorisation',
+    (0x06, 0x22): 'Pre-Authorisation/Reservation',
+    (0x06, 0x23):
         'Partial-Reversal of a Pre-Authorisation/Booking of a Reservation',
-    [0x06, 0x24]: 'Book Total',
-    [0x06, 0x25]: 'Pre-Authorisation Reversal',
-    [0x06, 0x30]: 'Reversal',
-    [0x06, 0x31]: 'Refund',
-    [0x06, 0x50]: 'End-of-Day',
-    [0x06, 0x51]: 'Send offline Transactions',
-    [0x06, 0x70]: 'Diagnosis',
-    [0x06, 0x79]: 'Selftest',
-    [0x06, 0x82]: 'RFU',
-    [0x06, 0x85]: 'Display Text (only included for downwards-compatibility, '
+    (0x06, 0x24): 'Book Total',
+    (0x06, 0x25): 'Pre-Authorisation Reversal',
+    (0x06, 0x30): 'Reversal',
+    (0x06, 0x31): 'Refund',
+    (0x06, 0x50): 'End-of-Day',
+    (0x06, 0x51): 'Send offline Transactions',
+    (0x06, 0x70): 'Diagnosis',
+    (0x06, 0x79): 'Selftest',
+    (0x06, 0x82): 'RFU',
+    (0x06, 0x85): 'Display Text (only included for downwards-compatibility, '
     'for new implementations use 06 E0)',
-    [0x06, 0x86]: 'Display Text with Numerical Input (only included for '
+    (0x06, 0x86): 'Display Text with Numerical Input (only included for '
         'downwards-compatibility, for new implementations use 06 E2)',
-    [0x06, 0x87]: 'PIN-Verification for Customer-Card (only included for '
+    (0x06, 0x87): 'PIN-Verification for Customer-Card (only included for '
     'downwards-compatibility, for new implementations use 06 E3)',
-    [0x06, 0x88]: 'Display Text with Function-Key Input (only included for '
+    (0x06, 0x88): 'Display Text with Function-Key Input (only included for '
         'downwards-compatibility, for new implementations use 06 E1)',
-    [0x06, 0x90]: 'RFU',
-    [0x06, 0x91]: 'Set Date and Time in PT',
-    [0x06, 0x93]: 'Initialisation',
-    [0x06, 0x95]: 'Change Password',
-    [0x06, 0xB0]: 'Abort',
-    [0x06, 0xC0]: 'Read Card',
-    [0x06, 0xCE]: 'RFU',
-    [0x06, 0xD1]: 'Print Line',
-    [0x06, 0xD3]: 'Print Text-Block',
-    [0x06, 0xD4]: 'RFU',
-    [0x06, 0xD8]: 'Dial-Up',
-    [0x06, 0xD9]: 'Transmit Data via Dial-Up',
-    [0x06, 0xDA]: 'Receive Data via Dial-Up ',
-    [0x06, 0xDB]: 'Hang-Up',
-    [0x06, 0xDD]: 'Transparent-Mode',
-    [0x06, 0xE0]: 'Display Text',
-    [0x06, 0xE1]: 'Display Text with Function-Key Input',
-    [0x06, 0xE2]: 'Display Text with Numerical Input',
-    [0x06, 0xE3]: 'PIN-Verification for Customer-Card',
-    [0x06, 0xE4]: 'Blocked-List Query to ECR',
-    [0x08, 0x01]: 'Activate Service-Mode',
-    [0x08, 0x02]: 'Switch Protocol',
-    [0x08, 0x10]: 'Software-Update',
-    [0x08, 0x11]: 'Read File',
-    [0x08, 0x12]: 'Delete File',
-    [0x08, 0x20]: 'Start OPT Action',
-    [0x08, 0x21]: 'Set OPT Point-in-Time',
-    [0x08, 0x22]: 'OPT-Pre-Initialisation',
-    [0x08, 0x23]: 'Output OPT-Data',
-    [0x08, 0x24]: 'OPT Out-of-Order',
-    [0x08, 0x30]: 'Select Language',
-    [0x08, 0x40]: 'Change Baudrate',
-    [0x08, 0x50]: 'Activate Card-Reader',
-    [0x0F, None]: 'reserved for proprietary extensions ',
-    [0x80, 0x00]: 'Positive Acknowledgement',
-    [0x84, 0x00]: 'Positive Acknowledgement',
-    [0x84, None]: 'Negative Acknowledgement',
-    [0x84, 0x9C]: 'Repeat Statusinfo'
+    (0x06, 0x90): 'RFU',
+    (0x06, 0x91): 'Set Date and Time in PT',
+    (0x06, 0x93): 'Initialisation',
+    (0x06, 0x95): 'Change Password',
+    (0x06, 0xB0): 'Abort',
+    (0x06, 0xC0): 'Read Card',
+    (0x06, 0xCE): 'RFU',
+    (0x06, 0xD1): 'Print Line',
+    (0x06, 0xD3): 'Print Text-Block',
+    (0x06, 0xD4): 'RFU',
+    (0x06, 0xD8): 'Dial-Up',
+    (0x06, 0xD9): 'Transmit Data via Dial-Up',
+    (0x06, 0xDA): 'Receive Data via Dial-Up ',
+    (0x06, 0xDB): 'Hang-Up',
+    (0x06, 0xDD): 'Transparent-Mode',
+    (0x06, 0xE0): 'Display Text',
+    (0x06, 0xE1): 'Display Text with Function-Key Input',
+    (0x06, 0xE2): 'Display Text with Numerical Input',
+    (0x06, 0xE3): 'PIN-Verification for Customer-Card',
+    (0x06, 0xE4): 'Blocked-List Query to ECR',
+    (0x08, 0x01): 'Activate Service-Mode',
+    (0x08, 0x02): 'Switch Protocol',
+    (0x08, 0x10): 'Software-Update',
+    (0x08, 0x11): 'Read File',
+    (0x08, 0x12): 'Delete File',
+    (0x08, 0x20): 'Start OPT Action',
+    (0x08, 0x21): 'Set OPT Point-in-Time',
+    (0x08, 0x22): 'OPT-Pre-Initialisation',
+    (0x08, 0x23): 'Output OPT-Data',
+    (0x08, 0x24): 'OPT Out-of-Order',
+    (0x08, 0x30): 'Select Language',
+    (0x08, 0x40): 'Change Baudrate',
+    (0x08, 0x50): 'Activate Card-Reader',
+    (0x80, 0x00): 'Positive Acknowledgement',
+    (0x84, 0x00): 'Positive Acknowledgement',
+    (0x84, None): 'Negative Acknowledgement',
+    (0x84, 0x9C): 'Repeat Statusinfo'
 }
 
 
@@ -318,19 +317,3 @@ class Transport(Logling):
 
     def send(self, message, *args, **kwargs):
         """Send data."""
-
-
-class ZVTException(Exception):
-    """Base exception for ZVT errors."""
-
-
-class TransportLayerException(ZVTException):
-    pass
-
-
-class TransportTimeoutException(TransportLayerException):
-    pass
-
-
-class ApplicationLayerException(ZVTException):
-    pass

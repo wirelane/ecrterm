@@ -1,21 +1,21 @@
-# -*- coding: utf-8 -*-
 """
-    
-    Serial Layer
-    
-    The Serial Layer is a transport used for 
-    
-    @author g4b
-"""
+Serial Layer
 
-import os  # @UnresolvedImport
-import select
-import time
+The Serial Layer is a transport used for
+
+@author g4b
+"""
 
 import serial
-from ecrterm import common, conv, crc
+
+from ecrterm.common import Transport
+from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
+from ecrterm.crc import crc_xmodem16
+from ecrterm.exceptions import (
+    TransportLayerException, TransportTimeoutException)
 from ecrterm.packets.apdu import APDUPacket
-from ecrterm.transmission.signals import *
+from ecrterm.transmission.signals import (
+    ACK, DLE, ETX, NAK, STX, TIMEOUT_T1, TIMEOUT_T2)
 from ecrterm.utils import ensure_bytes, is_stringlike
 
 SERIAL_DEBUG = False
@@ -24,11 +24,11 @@ SERIAL_DEBUG = False
 def std_serial_log(instance, data, incoming=False):
     try:
         if is_stringlike(incoming):
-            data = conv.bs2hl(data)
+            data = bs2hl(data)
         if incoming:
-            print("< %s" % conv.toHexString(data))
+            print("< %s" % toHexString(data))
         else:
-            print("> %s" % conv.toHexString(data))
+            print("> %s" % toHexString(data))
     except:
         print("| error in log")
 
@@ -48,16 +48,15 @@ class SerialMessage(object):
     def __init__(self, apdu=None):
         if is_stringlike(apdu):
             # try to get the list of bytes.
-            apdu = conv.toBytes(apdu.replace(' ', ''))
+            apdu = toBytes(apdu.replace(' ', ''))
         elif isinstance(apdu, APDUPacket):
             apdu = apdu.to_list()
         self.apdu = apdu
 
     def _get_crc(self):
-        data = conv.hl2bs(self.apdu + [ETX])
-        # print "crc for %s => %s" % ([hex(i) for i in self.apdu], hex(crc.crc_xmodem16(data)))
+        data = hl2bs(self.apdu + [ETX])
         try:
-            return crc.crc_xmodem16(data)
+            return crc_xmodem16(data)
         except:
             print(self.apdu)
             raise
@@ -89,7 +88,7 @@ class SerialMessage(object):
 
     def __repr__(self):
         return "SerialMessage (APDU: %s, CRC-L: %s CRC-H: %s)" % (
-            conv.toHexString(self.apdu),
+            toHexString(self.apdu),
             hex(self.crc_l),
             hex(self.crc_h))
 
@@ -99,10 +98,10 @@ class SerialMessage(object):
         return [DLE, STX] + apdu + [DLE, ETX, self.crc_l, self.crc_h]
 
     def as_bin(self):
-        return conv.hl2bs(self.dump_message())
+        return hl2bs(self.dump_message())
 
 
-class SerialTransport(common.Transport):
+class SerialTransport(Transport):
     SerialCls = serial.Serial
     slog = noop
 
@@ -121,7 +120,7 @@ class SerialTransport(common.Transport):
             xonxoff=0,  # disable software flow control
             rtscts=0,  # disable RTS/CTS flow control
         )
-        if ser.isOpen() == False:
+        if not ser.isOpen():
             ser.open()
         # 8< got that from somwhere, not sure what it does:
         ser.setRTS(1)
@@ -146,7 +145,7 @@ class SerialTransport(common.Transport):
     def write(self, something=None):
         if something:
             try:
-                self.slog(conv.bs2hl(something))
+                self.slog(bs2hl(something))
             finally:
                 self.connection.write(ensure_bytes(something))  # !?
 
@@ -167,19 +166,20 @@ class SerialTransport(common.Transport):
         """
             reads a message packet. any errors are raised directly.
         """
-        # if in 5 seconds no message appears, we respond with a nak and raise an error.
+        # if in 5 seconds no message appears, we respond with a nak and
+        # raise an error.
         self.connection.timeout = timeout
         apdu = []
         crc = None
         header = self.connection.read(2)
-        header = conv.bs2hl(header)
+        header = bs2hl(header)
         # test if there was a transmission:
         if header == []:
-            raise common.TransportLayerException('Reading Header Timeout')
+            raise TransportLayerException('Reading Header Timeout')
         # test our header to be valid
         if header != [DLE, STX]:
             self.slog(header, True)
-            raise common.TransportLayerException("Header Error: %s" % header)
+            raise TransportLayerException("Header Error: %s" % header)
         # read until DLE, ETX is reached.
         dle = False
         # timeout to T1 after header.
@@ -188,17 +188,17 @@ class SerialTransport(common.Transport):
             b = ord(self.connection.read(1))  # read a byte.
             if b is None:
                 # timeout
-                raise common.TransportLayerException(
+                raise TransportLayerException(
                     "Timeout T1 reading stream.")
             if b == ETX and dle:
                 # dle was set, and this is ETX, so we are at the end.
                 # we read the CRC now.
                 crc = self.connection.read(2)
                 if not crc:
-                    raise common.TransportLayerException(
+                    raise TransportLayerException(
                         "Timeout T1 reading CRC")
                 else:
-                    crc = conv.bs2hl(crc)
+                    crc = bs2hl(crc)
                 # and break
                 continue
             elif b == DLE:
@@ -212,7 +212,7 @@ class SerialTransport(common.Transport):
             elif dle:
                 # dle was set, but we got no etx here.
                 # this seems to be an error.
-                raise common.TransportLayerException(
+                raise TransportLayerException(
                     "DLE without sense detected.")
             # we add this byte to our apdu.
             apdu += [b]
@@ -274,15 +274,14 @@ class SerialTransport(common.Transport):
                 # if tries < 3:
                 #    return self.send_message(message, tries + 1, no_answer)
                 # else:
-                raise common.TransportLayerException("Could not send message")
+                raise TransportLayerException('Could not send message')
             elif not acknowledge:
                 # this happens quite a lot with the ingenico devices.
                 # possibly a workaround would be nice.
-                raise common.TransportTimeoutException(
-                    "No Answer, Possible Timeout")
+                raise TransportTimeoutException('No Answer, Possible Timeout')
             else:
-                raise common.TransportLayerException(
-                    "Unknown Acknowledgment Byte %s" % conv.bs2hl(acknowledge))
+                raise TransportLayerException(
+                    'Unknown Acknowledgment Byte %s' % bs2hl(acknowledge))
 
     def send(self, apdu, tries=0, no_wait=False):
         """

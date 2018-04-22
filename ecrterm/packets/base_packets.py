@@ -1,6 +1,7 @@
 import datetime
 
-from ecrterm import common, conv
+from ecrterm.common import ERRORCODES, INTERMEDIATE_STATUS_CODES
+from ecrterm.conv import bs2hl, toHexString
 from ecrterm.packets import bmp
 from ecrterm.packets.apdu import APDUPacket, Packets
 from ecrterm.packets.bmp import BCD
@@ -25,8 +26,8 @@ class Packet(APDUPacket):
         else:
             introspection = '**%s' % bitmap_stati
         return "%s{%s %s} %s" % (
-            self.__class__.__name__, conv.toHexString([self.cmd_class]),
-            conv.toHexString([self.cmd_instr]), introspection)
+            self.__class__.__name__, toHexString([self.cmd_class]),
+            toHexString([self.cmd_instr]), introspection)
 
     def _handle_unknown_response(self, response, tm):
         print("Unknown packet response %s" % response)
@@ -97,7 +98,7 @@ class Registration(Packet):
     cmd_instr = 0x0
     fixed_arguments = ['password', 'config_byte', 'cc']
     fixed_values = {
-        'password': '123456', 'config_byte': 0xBE, 'cc': Packets.CC_EUR}
+        'password': '123456', 'config_byte': 0xBA, 'cc': Packets.CC_EUR}
     wait_for_completion = True
 
     def validate(self):
@@ -117,7 +118,7 @@ class Registration(Packet):
             # only password and byte
             # no cc
             self.fixed_values['password'] = ''.join(
-                [conv.toHexString([c]) for c in data[0:3]])
+                [toHexString([c]) for c in data[0:3]])
             self.fixed_values['config_byte'] = data[3]
         if length >= 6:
             self.fixed_values['cc'] = data[4:6]
@@ -195,7 +196,7 @@ class Kassenbericht(Packet):
     def consume_fixed(self, data, length):
         if length >= 3:
             self.fixed_values['password'] = ''.join(
-                [conv.toHexString([c]) for c in data[0:3]])
+                [toHexString([c]) for c in data[0:3]])
             return data[3:]
         return []
 
@@ -212,7 +213,7 @@ class EndOfDay(Packet):
     def consume_fixed(self, data, length):
         if length >= 3:
             self.fixed_values['password'] = ''.join(
-                [conv.toHexString([c]) for c in data[0:3]])
+                [toHexString([c]) for c in data[0:3]])
             return data[3:]
         return []
 
@@ -242,7 +243,7 @@ class Initialisation(Packet):
     def consume_fixed(self, data, length):
         if length == 3:
             self.fixed_values['password'] = ''.join(
-                [conv.toHexString([c]) for c in data[0:3]])
+                [toHexString([c]) for c in data[0:3]])
         return []
 
 
@@ -401,24 +402,24 @@ class StatusInformation(Packet):
                 BCD.as_int(BCD.decode_bcd(totals_list[0:2])),
             'receipt-number-end':
                 BCD.as_int(BCD.decode_bcd(totals_list[2:4])),
-            'number-ec-card': conv.bs2hl(totals_list[4])[0],
+            'number-ec-card': bs2hl(totals_list[4])[0],
             'turnover-ec-card':
                 BCD.as_int(BCD.decode_bcd(totals_list[5:5 + 6])),
-            'number-jcb': conv.bs2hl(totals_list[11])[0],
+            'number-jcb': bs2hl(totals_list[11])[0],
             'turnover-jcb': BCD.as_int(BCD.decode_bcd(totals_list[12:12 + 6])),
-            'number-eurocard': conv.bs2hl(totals_list[18])[0],
+            'number-eurocard': bs2hl(totals_list[18])[0],
             'turnover-eurocard':
                 BCD.as_int(BCD.decode_bcd(totals_list[19:19 + 6])),
-            'number-amex': conv.bs2hl(totals_list[25])[0],
+            'number-amex': bs2hl(totals_list[25])[0],
             'turnover-amex':
                 BCD.as_int(BCD.decode_bcd(totals_list[26:26 + 6])),
-            'number-visa': conv.bs2hl(totals_list[32])[0],
+            'number-visa': bs2hl(totals_list[32])[0],
             'turnover-visa':
                 BCD.as_int(BCD.decode_bcd(totals_list[33:33 + 6])),
-            'number-diners': conv.bs2hl(totals_list[39])[0],
+            'number-diners': bs2hl(totals_list[39])[0],
             'turnover-diners':
                 BCD.as_int(BCD.decode_bcd(totals_list[40:40 + 6])),
-            'number-remaining': conv.bs2hl(totals_list[46])[0],
+            'number-remaining': bs2hl(totals_list[46])[0],
             'turnover-remaining':
                 BCD.as_int(BCD.decode_bcd(totals_list[47:47 + 6])),
             'amount': int(bdict['amount'].value()),
@@ -471,7 +472,7 @@ class IntermediateStatusInformation(Packet):
 
     def __repr__(self):
         return "IntermediateStatus{04 FF}: %s" % (
-            common.INTERMEDIATE_STATUS_CODES.get(
+            INTERMEDIATE_STATUS_CODES.get(
                 self.fixed_values.get('intermediate_status', None),
                 'No status'))
 
@@ -511,8 +512,8 @@ class PacketReceivedError(Packet):
 
     def __repr__(self):
         return "PacketReceivedERROR{84 %s}: %s" % (
-            conv.toHexString([self.error_code]),
-            common.ERRORCODES.get(self.error_code, 'Unknown Error'),
+            toHexString([self.error_code]),
+            ERRORCODES.get(self.error_code, 'Unknown Error'),
         )
 
 
@@ -560,7 +561,7 @@ class PrintLine(Packet):
     def enrich_fixed(self):
         # take attribute first
         bs = [self.fixed_values.get('attribute', 0)]
-        bs += conv.bs2hl(self.fixed_values.get('text', ''))
+        bs += bs2hl(self.fixed_values.get('text', ''))
         return bs
 
 
@@ -672,7 +673,7 @@ class StatusEnquiry(Packet):
     def consume_fixed(self, data, length):
         if length:
             self.fixed_values['password'] = ''.join(
-                [conv.toHexString([c]) for c in data[0:3]])
+                [toHexString([c]) for c in data[0:3]])
         return data[3:]
 
 

@@ -1,20 +1,21 @@
 """
-    
-    Transmission Object for ZVT Protocol.
-    
-    @author g4b
+Transmission Object for ZVT Protocol.
+
+@author g4b
 """
-from ecrterm.packets.base_packets import PacketReceived, PacketReceivedError
-from ecrterm.transmission._transmission import (
-    Transmission, TransmissionException)
-from ecrterm.transmission.signals import *
+
+from ecrterm.exceptions import TransmissionException, TransportLayerException
+from ecrterm.packets.base_packets import PacketReceived
+from ecrterm.transmission._transmission import Transmission
+from ecrterm.transmission.signals import (
+    TIMEOUT_T4_DEFAULT, TRANSMIT_ERROR, TRANSMIT_OK, TRANSMIT_TIMEOUT)
 
 
 class ZVTTransmission(Transmission):
     """
         A Transmission Object represents an open connection between ECR and PT.
         It regulates the flow of packets, and uses a Transport
-        to send its data. 
+        to send its data.
         The default Transport to use is the serial transport.
     """
     actual_timeout = TIMEOUT_T4_DEFAULT
@@ -28,14 +29,14 @@ class ZVTTransmission(Transmission):
 
     def log_response(self, response):
         """
-            every response is saved into self.log_list.
-            hook this for live data.
+        Every response is saved into self.log_list.
+        Hook this for live data.
         """
         self.log_list += [response]
 
     def send_received(self):
         """
-            send the "Packet Received" Packet.
+        send the 'Packet Received' Packet.
         """
         packet = PacketReceived()
         self.history += [(False, packet), ]
@@ -43,18 +44,18 @@ class ZVTTransmission(Transmission):
 
     def handle_packet_response(self, packet, response):
         """
-            a shortcut for calling the handle_response of the packet.
+        A shortcut for calling the handle_response of the packet.
         """
         return packet.handle_response(response, self)
 
     def transmit(self, packet):
         """
-            Transmit the packet, go into slave mode and wait until the
-            whole sequence is finished.
+        Transmit the packet, go into slave mode and wait until the whole
+        sequence is finished.
         """
         if not self.is_master or self.is_waiting:
             raise TransmissionException(
-                "Can't send until transmisson is ready")
+                'Can\'t send until transmisson is ready')
         self.is_master = False
         try:
             self.history += [(False, packet), ]
@@ -69,7 +70,7 @@ class ZVTTransmission(Transmission):
                         success, response = self.transport.receive(
                             self.actual_timeout)
                         self.history += [(True, response)]
-                    except common.TransportLayerException:
+                    except TransportLayerException:
                         # some kind of timeout.
                         # if we are already master, we can bravely ignore this.
                         if self.is_master:
@@ -81,7 +82,7 @@ class ZVTTransmission(Transmission):
                         # we actually have to handle a last packet
                         stay_master = self.handle_packet_response(
                             packet, response)
-                        print("Is Master Read Ahead happened.")
+                        print('Is Master Read Ahead happened.')
                         self.is_master = stay_master
         except Exception as e:
             print(e)

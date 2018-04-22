@@ -4,15 +4,12 @@ Misc. Tests.
 
 @author g4b
 """
-import unittest
+from unittest import TestCase, main
 
-from ecrterm.packets.bmp import *
-
-#import sys
-#sys.path.insert(0, '..')
+from ecrterm.packets.bmp import BCD
 
 
-class TestSequenceFunctions(unittest.TestCase):
+class TestSequenceFunctions(TestCase):
 
     def setUp(self):
         pass
@@ -66,4 +63,4 @@ class TestSequenceFunctions(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()

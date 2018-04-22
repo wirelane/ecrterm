@@ -1,21 +1,19 @@
 """Classes and Functions which deal with the APDU Layer."""
 
-import sys
 from logging import debug
 
-from ecrterm import conv
+from six.moves import range
+
+from ecrterm.conv import toBytes
+from ecrterm.exceptions import NotEnoughData
 from ecrterm.packets.bitmaps import BITMAPS_ARGS
 from ecrterm.packets.bmp import BMP, int_word_split
 from ecrterm.utils import is_stringlike
 
-if sys.version_info[0] == 2:
-    range = xrange
-
 
 class _PacketRegister:
     """
-        All Packets come into this register.
-        Singleton for each Protocol.
+    All Packets come into this register. Singleton for each Protocol.
     """
     # Currencies
     CC_EUR = [0x09, 0x78]
@@ -57,7 +55,7 @@ class _PacketRegister:
         # detects which class to use.
         if is_stringlike(datastream):
             # lets convert our string into a bytelist.
-            datastream = conv.toBytes(datastream[:2])
+            datastream = toBytes(datastream[:2])
         # read the first two bytes of the stream.
         cc, ci = datastream[:2]
         # print '<| %s %s' % (hex(cc), hex(ci))
@@ -77,12 +75,6 @@ class APDUPacket(object):
     Goal is to not save any binary data in the instance anymore.
     Translation from data to classes and vice versa should be fluent.
     """
-    class NotEnoughData(Exception):
-        """ raised if the apdu has not enough data to make sense """
-        pass
-
-    class IntegrityError(Exception):
-        pass
     cmd_class = 0x6  # standard.
     cmd_instr = None
     allowed_bitmaps = None  # None=All, [] = None.
@@ -160,7 +152,7 @@ class APDUPacket(object):
                 val = self.fixed_values.get(self.fixed_arguments[i], None)
                 if val:
                     if is_stringlike(val):
-                        val = conv.toBytes(val)
+                        val = toBytes(val)
                     elif isinstance(val, list):
                         pass
                     else:
@@ -170,9 +162,7 @@ class APDUPacket(object):
         return ds
 
     def introspect_fixed(self):
-        """
-            return a description of your fixed data.
-        """
+        """Return a description of your fixed data."""
         return self.fixed_values
 
     def get_data(self):
@@ -197,14 +187,14 @@ class APDUPacket(object):
     #############################################
     def consume_fixed(self, data, length):
         """
-            Overwrite this Function for your Packet to consume fixed
-            arguments not represented by bitmaps.
-            This data usually comes before any bitmaps are present
-            and each packet has to know for itself, how to handle them.
+        Overwrite this Function for your Packet to consume fixed
+        arguments not represented by bitmaps.
+        This data usually comes before any bitmaps are present
+        and each packet has to know for itself, how to handle them.
 
-            data is the whole packet data after the length part
+        data is the whole packet data after the length part
 
-            length is the given data-length coded into the packet.
+        length is the given data-length coded into the packet.
         """
         # consume all fixed arguments from data here.
         # this might be very different from packet to packet.
@@ -231,8 +221,7 @@ class APDUPacket(object):
         if len(blob) >= pos + length:
             data = blob[pos:pos + length]
         else:
-            raise self.NotEnoughData(
-                "Not enough Data to create the packet data.")
+            raise NotEnoughData('Not enough Data to create the packet data.')
         # step 1: fixed arguments.
         # if this packet has some fixed arguments, they have to be
         # parsed first.
@@ -245,10 +234,10 @@ class APDUPacket(object):
     data = property(get_data, set_data)
 
     @classmethod
-    def parse(cls, blob=""):
+    def parse(cls, blob=''):
         if is_stringlike(blob):
             # lets convert our string into a bytelist.
-            blob = conv.toBytes(blob)
+            blob = toBytes(blob)
         if isinstance(blob, list):
             # allright.
             # first we detect our packetclass
