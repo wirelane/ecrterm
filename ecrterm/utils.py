@@ -3,32 +3,23 @@ Utility Functions.
 
 @author g4b
 """
-import sys
-
-if sys.version_info[0] == 2:
-    def is_stringlike(v):
-        return isinstance(v, basestring)
-
-    def ensure_bytes(v):
-        if isinstance(v, unicode):
-            return str(v)
-        if isinstance(v, list):
-            return bytearray(v)
-        return v
-else:
-    def is_stringlike(v):
-        return isinstance(v, str) or isinstance(v, bytes)
-
-    def ensure_bytes(v):
-        if isinstance(v, str):
-            return bytearray(ord(c) for c in v)
-        if isinstance(v, list):
-            return bytearray(v)
-        return v
+StatusEnquiry = Completion = ECR = None
 
 
-def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True,
-              ecr=None):
+def is_stringlike(v):
+    return isinstance(v, str) or isinstance(v, bytes)
+
+
+def ensure_bytes(v):
+    if isinstance(v, str):
+        return bytearray(ord(c) for c in v)
+    if isinstance(v, list):
+        return bytearray(v)
+    return v
+
+
+def detect_pt(
+        device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
     """ connects to given serial port and tests if a PT is present.
         if present: tries to return version number or True
         returns False otherwise.
@@ -38,18 +29,21 @@ def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True,
         @param ecr: give a working ecr to perform this task. note: you have to
             reconnect the transport since the timeout is changed.
     """
-    from ecrterm.ecr import ECR  # avoid circular import
-    from ecrterm import packets
+    global ECR, StatusEnquiry, Completion
+    if ECR is None:
+        from ecrterm.ecr import ECR  # avoid circular import
+    if StatusEnquiry is None:
+        from ecrterm.packets.base_packets import StatusEnquiry, Completion
 
     def __detect_pt(port, timeout, ecr):
         e = ecr or ECR(port)
         # reconnect to have lower timeout
         e.transport.close()
         e.transport.connect(timeout=timeout)
-        errors = e.transmit(packets.StatusEnquiry())
+        errors = e.transmit(StatusEnquiry())
         try:
             if not errors:
-                if isinstance(e.last.completion, packets.Completion):
+                if isinstance(e.last.completion, Completion):
                     return e.last.completion.fixed_values.get(
                         'sw-version', True) or True
                 return True
@@ -61,7 +55,7 @@ def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True,
     if silent:
         try:
             return __detect_pt(device, timeout, ecr)
-        except:
+        except Exception:
             return False
     else:
         return __detect_pt(device, timeout, ecr)
