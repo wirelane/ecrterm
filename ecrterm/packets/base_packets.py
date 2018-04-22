@@ -37,8 +37,8 @@ class Packet(APDUPacket):
         """
         allows a packet to handle all responses in a transmission by itself.
         returns a tuple:
-         # first is if handle_super_response has an answer.
-         # second is the handle_response answer.
+        - first is if handle_super_response has an answer.
+        - second is the handle_response answer.
         if first is False, second is omitted, and packet is still cared
         by handle_response itself.
 
@@ -138,9 +138,9 @@ class Registration(Packet):
         initial=0x0
     ):
         """
-            generates a config bbititmask for your register function.
-            can only set bits
-            in tutorials 0xba (0b10111010) is used (all but admin receipt)
+        Generates a config bbititmask for your register function.
+        Can only set bits in tutorials 0xba (0b10111010) is used (all
+        but admin receipt)
         """
         ret = initial
         # 0000 0001: RFU
@@ -185,9 +185,7 @@ Packets.register(Registration)
 
 
 class Kassenbericht(Packet):
-    """
-    a cardcomplete packet?
-    """
+    """A cardcomplete packet?"""
     cmd_class = 0x0f
     cmd_instr = 0x10
     fixed_arguments = ['password', ]
@@ -223,9 +221,7 @@ Packets.register(EndOfDay)
 
 
 class LogOff(Packet):
-    """
-        06 02 Log Off
-    """
+    """06 02 Log Off"""
     cmd_instr = 0x2
 
 
@@ -252,22 +248,21 @@ class Initialisation(Packet):
 
 Packets.register(Initialisation)
 
-# Text Related ############################################################
+# --- Text Related ---
 
 
 class ShowText(Packet):
     """
-        06 E0
-           chapters: bzt 3.2.26, pt 2.24
-           Note: only line 1-4 can be used by BZT.
-           bitmap: F0, duration, 0 = forever
-                   F1-F8: text, 7bit ascii
+    06 E0
+    chapters: bzt 3.2.26, pt 2.24
+    Note: only line 1-4 can be used by BZT.
+    bitmap: F0, duration, 0 = forever
+    F1-F8: text, 7bit ascii
     """
     cmd_instr = 0xe0
-    allowed_bitmaps = ['display_duration',
-                       'line1', 'line2', 'line3', 'line4',
-                       'line5', 'line6', 'line7', 'line8',
-                       'beeps']
+    allowed_bitmaps = [
+        'display_duration', 'line1', 'line2', 'line3', 'line4', 'line5',
+        'line6', 'line7', 'line8', 'beeps']
 
 
 Packets.register(ShowText)
@@ -275,8 +270,8 @@ Packets.register(ShowText)
 
 class ShowTextIntInput(Packet):
     """
-        06 E2
-        text output with numerical input.
+    06 E2
+    text output with numerical input.
     """
     cmd_instr = 0xe2
 
@@ -286,9 +281,9 @@ Packets.register(ShowTextIntInput)
 
 class Completion(Packet):
     """
-        06 0F
-        * Sent to the ECR to signal him getting master rights back.
-        * PT>ECR
+    06 0F
+    * Sent to the ECR to signal him getting master rights back.
+    * PT>ECR
     """
     cmd_instr = 0xf
 
@@ -333,9 +328,7 @@ class Abort(Packet):
         return []
 
     def enrich_fixed(self):
-        """
-            enrich the serialized data with fixed argument error_code
-        """
+        """Enrich the serialized data with fixed argument error_code."""
         if self.error_code:
             return [int(self.error_code)]
         return []
@@ -348,8 +341,8 @@ Packets.register(Abort)
 
 class StatusInformation(Packet):
     """
-        04 0F
-        this one is important so i mark it here.
+    04 0F
+    this one is important so i mark it here.
     """
     cmd_class = Packets.CMD_PT
     cmd_instr = 0x0f
@@ -366,7 +359,8 @@ class StatusInformation(Packet):
         - returns total amount at least in key 'amount'
         - tries to decipher credit card data into following format:
           number-<creditcard>, turnover-<creditcard>
-          creditcard being [ec-card, jcb, eurocard, amex, visa, diners, remaining]
+          creditcard being [ec-card, jcb, eurocard, amex, visa, diners,
+          remaining]
         - receipt-number-start, receipt-number-end contain the range of
           receipts
         """
@@ -374,18 +368,18 @@ class StatusInformation(Packet):
         # create a dictionary of bitmaps:
         bdict = self.bitmaps_as_dict()
         # at least amount should be present:
-        if not 'amount' in bdict.keys():
+        if 'amount' not in bdict.keys():
             return {}
         else:
             ret = {'amount': int(bdict['amount'].value()), }
         # bitmap 0x60 (totals) contains the required information.
         # another bitmap (amount) holds the amount
-        if not 'totals' in bdict.keys():
+        if 'totals' not in bdict.keys():
             # this packet holds no detail information but an amount.
             return ret
         totals = bdict['totals']
         totals_list = totals.value()
-        #totals_list = str(bdict['totals'])
+        # totals_list = str(bdict['totals'])
         # now we build our real data our of it.
 
         # rebuild date and time.
@@ -456,8 +450,8 @@ Packets.register(StatusInformation)
 
 class IntermediateStatusInformation(Packet):
     """
-        04 FF
-        this one is important so i mark it here.
+    04 FF
+    this one is important so i mark it here.
     """
     cmd_class = Packets.CMD_PT
     cmd_instr = 0xff
@@ -465,7 +459,7 @@ class IntermediateStatusInformation(Packet):
 
     def consume_fixed(self, data, length):
         """
-            Status has 1 byte encoding the status.
+        Status has 1 byte encoding the status.
         """
         if length:
             self.fixed_values['intermediate_status'] = data[0]
@@ -487,9 +481,9 @@ Packets.register(IntermediateStatusInformation)
 
 class PacketReceived(Packet):
     """
-        80 00
-        most used packet ever: Packet Received Successfully.
-        PT<->ECR
+    80 00
+    most used packet ever: Packet Received Successfully.
+    PT<->ECR
     """
     cmd_class = 0x80
     cmd_instr = 0x00
@@ -500,8 +494,8 @@ Packets.register(PacketReceived)
 
 class PacketReceivedError(Packet):
     """
-        84 XX
-        Some error occured receiving the packet.
+    84 XX
+    Some error occured receiving the packet.
     """
     cmd_class = 0x84
     cmd_instr = None
@@ -528,19 +522,18 @@ Packets.register(PacketReceivedError)
 # Authorisation PAckets needed:
 class Authorisation(Packet):
     """
-        06 01
-        If you want to authorize a transaction, this is the packet you need
-        to start with. Also for reading card data in general.
+    06 01
+    If you want to authorize a transaction, this is the packet you need
+    to start with. Also for reading card data in general.
     """
     cmd_class = 0x6
     cmd_instr = 0x1
     wait_for_completion = True
 
-    allowed_bitmaps = ['amount', 'cc', 'payment_type', 'track_1',
-                       'card_expire', 'card_number',
-                       'track_2', 'track_3',
-                       'timeout', 'max_status_infos', 'pump_nr',
-                       'cvv', 'additional', 'card_type', ]
+    allowed_bitmaps = [
+        'amount', 'cc', 'payment_type', 'track_1', 'card_expire',
+        'card_number', 'track_2', 'track_3', 'timeout', 'max_status_infos',
+        'pump_nr', 'cvv', 'additional', 'card_type']
 
 
 Packets.register(Authorisation)
@@ -548,9 +541,9 @@ Packets.register(Authorisation)
 
 class PrintLine(Packet):
     """
-        06 D1
-        Usually sent by PT to ECR telling him to print a line.
-        Needed for diagnosis.
+    06 D1
+    Usually sent by PT to ECR telling him to print a line.
+    Needed for diagnosis.
     """
     cmd_class = 0x6
     cmd_instr = 0xd1
@@ -576,17 +569,15 @@ Packets.register(PrintLine)
 
 class PrintTextBlock(Packet):
     """
-        06 D3
-        Same as Printline but for a textblock.
-        However, uses TLV so not used in basic implementation.
+    06 D3
+    Same as Printline but for a textblock.
+    However, uses TLV so not used in basic implementation.
     """
     cmd_class = 0x6
     cmd_instr = 0xd3
 
     def consume_fixed(self, data, length):
-        """
-            we just print the data for now
-        """
+        """We just print the data for now."""
         print(data)
         return data
 
@@ -596,7 +587,7 @@ Packets.register(PrintTextBlock)
 
 class Diagnosis(Packet):
     """
-        06 70
+    06 70
     """
     cmd_class = 0x6
     cmd_instr = 0x70
@@ -614,8 +605,8 @@ Packets.register(Diagnosis)
 
 class ActivateCardReader(Packet):
     """
-        08 50
-        Dieses Paket ist im CardComplete nicht implementiert.
+    08 50
+    Dieses Paket ist im CardComplete nicht implementiert.
     """
     cmd_class = 0x8
     cmd_instr = 0x50
@@ -656,8 +647,8 @@ Packets.register(ReadCard)
 
 class ResetTerminal(Packet):
     """
-        06 18
-        works.
+    06 18
+    works.
     """
     cmd_class = 0x6
     cmd_instr = 0x18
@@ -669,8 +660,7 @@ Packets.register(ResetTerminal)
 
 class StatusEnquiry(Packet):
     """
-        05 01
-
+    05 01
     """
     cmd_class = 0x5
     cmd_instr = 0x1

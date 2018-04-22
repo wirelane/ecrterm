@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/env python
 """
-    Maybe create a small console program which allows us to:
-     - send packets directly
-     - receive them directly
-     - see the binary data of the packet
-     - see the representation of the packet
-     - ability for incoming and outgoing
+Maybe create a small console program which allows us to:
+- send packets directly
+- receive them directly
+- see the binary data of the packet
+- see the representation of the packet
+- ability for incoming and outgoing
 """
 import logging
 import time
@@ -31,7 +29,7 @@ def dismantle_serial_packet(data):
     crc = None
     i = 2
     header = data[:i]
-    #header = conv.bs2hl(header)
+    # header = conv.bs2hl(header)
     # test if there was a transmission:
     if header == []:
         raise common.TransportLayerException('No Header')
@@ -129,7 +127,7 @@ class ECR(object):
     def __get_last(self):
         if self.transmitter is not None:
             return self.transmitter.last
-    #!: Last is a short access for transmitter.last if possible.
+    # !: Last is a short access for transmitter.last if possible.
     last = property(__get_last)
 
     def __init__(self, device='/dev/ttyUSB0', password='123456'):
@@ -141,7 +139,7 @@ class ECR(object):
             You can access the Protocol Handler on low level as `transmission`
         """
         self.transport = transmission.SerialTransport(device)
-        #self.transport.slog = ecr_log
+        # self.transport.slog = ecr_log
         self.daylog = []
         self.daylog_template = ''
         self.history = []
@@ -254,7 +252,7 @@ class ECR(object):
         """
             executes a payment in amount of cents.
             @returns: True, if payment went through, or False if it was
-            canceled. 
+            canceled.
             throws exceptions.
         """
         pkg = Authorisation(
@@ -360,7 +358,7 @@ class ECR(object):
         """
             waits until self.status() returns 0 (or False/None)
             polls the PT in 2 second intervals.
-            this function prints out the status string. 
+            this function prints out the status string.
             use it as code example.
         """
         status = self.status()

@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-#!/usr/bin/env python
 """
-    Transmission Basics.
-    @author g4b
+Transmission Basics.
+@author g4b
 """
 from ecrterm import common
 from ecrterm.packets.base_packets import PacketReceived
@@ -15,10 +13,10 @@ class TransmissionException(common.ApplicationLayerException):
 
 class Transmission(object):
     """
-        A Transmission Object represents an open connection between ECR and PT.
-        It regulates the flow of packets, and uses a Transport
-        to send its data. 
-        The default Transport to use is the serial transport.
+    A Transmission Object represents an open connection between ECR and PT.
+    It regulates the flow of packets, and uses a Transport
+    to send its data.
+    The default Transport to use is the serial transport.
     """
     actual_timeout = TIMEOUT_T4_DEFAULT
     last = None
@@ -34,22 +32,20 @@ class Transmission(object):
 
     def log_response(self, response):
         """
-            every response is saved into self.log_list.
-            hook this for live data.
+        Every response is saved into self.log_list. Hook this for live
+        data.
         """
         self.log_list += [response]
 
     def send_received(self):
-        """
-            send the "Packet Received" Packet.
-        """
+        """Send the "Packet Received" Packet."""
         packet = PacketReceived()
         self.history += [(False, packet), ]
         self.transport.send(packet, no_wait=True)
 
     def handle_packet_response(self, packet, response):
         """
-            a shortcut for calling the handle_response of the packet.
+        A shortcut for calling the handle_response of the packet.
         """
         return packet.handle_response(response, self)
 
@@ -66,8 +62,8 @@ class Transmission(object):
 
     def _transmit(self, packet, history):
         """
-            Transmit the packet, go into slave mode and wait until the
-            whole sequence is finished.
+        Transmit the packet, go into slave mode and wait until the whole
+        sequence is finished.
         """
         if not self.is_master or self.is_waiting:
             raise TransmissionException(
