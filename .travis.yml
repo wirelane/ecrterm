@@ -6,5 +6,5 @@ install:
   - pip install -U pip wheel
   - pip install -r ecrterm/requirements.txt
 script:
-  - flake8 ecrterm/
+  - flake8 ecrterm/ || travis_terminate 1
   - python -m unittest discover -v
