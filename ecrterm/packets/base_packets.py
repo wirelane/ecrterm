@@ -2,9 +2,8 @@ import datetime
 
 from ecrterm.common import ERRORCODES, INTERMEDIATE_STATUS_CODES
 from ecrterm.conv import bs2hl, toHexString
-from ecrterm.packets import bmp
 from ecrterm.packets.apdu import APDUPacket, Packets
-from ecrterm.packets.bmp import BCD
+from ecrterm.packets.bmp import BCD, LLLVAR
 
 
 class Packet(APDUPacket):
@@ -295,7 +294,7 @@ class Completion(Packet):
         elif length >= 2:
             try:
                 # try to LLLVAR parse:
-                l_var = bmp.LLLVAR()
+                l_var = LLLVAR()
                 rest = l_var.parse(data)
                 self.fixed_values['sw-version'] = l_var.value()
                 if len(rest) == 1:

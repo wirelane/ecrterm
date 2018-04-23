@@ -7,6 +7,7 @@ from typing import Tuple
 from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl
 from ecrterm.packets.apdu import APDUPacket
+from ecrterm.transmission.signals import TIMEOUT_T2
 
 
 def hexformat(data: bytes) -> str:
@@ -89,10 +90,11 @@ class SocketTransport(Transport):
         data += length
         return data, unpack('<H', length)[0]
 
-    def _receive(self) -> bytes:
+    def _receive(self, timeout=TIMEOUT_T2) -> bytes:
         """
         Receive the response from the terminal and return is as `bytes`.
         """
+        self.sock.settimeout(timeout)
         data, length = self._receive_length()
         if not length:  # Length is 0
             return data

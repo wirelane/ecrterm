@@ -148,6 +148,7 @@ class ECR(object):
             self.transport = SerialTransport(device)
         elif device.startswith('socket://'):
             self.transport = SocketTransport(uri=device)
+        # This turns on debug logging
         # self.transport.slog = ecr_log
         self.daylog = []
         self.daylog_template = ''
@@ -260,7 +261,6 @@ class ECR(object):
         printout = []
         for entry in self.transmitter.last_history:
             inc, packet = entry
-            # old_histoire += [(inc, packet)]
             if inc and isinstance(packet, PrintLine):
                 printout += [packet.fixed_values['text']]
         return printout
@@ -272,11 +272,10 @@ class ECR(object):
         canceled.
         throws exceptions.
         """
-        pkg = Authorisation(
+        code = self.transmit(packet=Authorisation(
             amount=amount_cent,  # in cents.
             currency_code=978,  # euro, only one that works, can be skipped.
-        )
-        code = self.transmit(pkg)
+        ))
 
         if code == 0:
             # now check if the packet actually got what it wanted.

@@ -255,9 +255,9 @@ class SerialTransport(Transport):
             # if nak, we retry, if ack, we read, if other, we raise.
             if acknowledge == ensure_bytes(chr(ACK)):
                 # everything alright.
-                if not no_wait:
-                    return self.receive()
-                return True
+                if no_wait:
+                    return True
+                return self.receive()
             elif acknowledge == ensure_bytes(chr(NAK)):
                 # not everything allright.
                 # if tries < 3:

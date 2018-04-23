@@ -73,25 +73,26 @@ class Transmission(object):
             while not self.is_master:
                 self.is_master = self.handle_packet_response(
                     self.last, response)
-                if not self.is_master:
-                    try:
-                        success, response = self.transport.receive(
-                            self.actual_timeout)
-                        history += [(True, response)]
-                    except TransportLayerException:
-                        # some kind of timeout.
-                        # if we are already master, we can bravely ignore this.
-                        if self.is_master:
-                            return TRANSMIT_OK
-                        else:
-                            raise
-                            return TRANSMIT_TIMEOUT
-                    if self.is_master and success:
-                        # we actually have to handle a last packet
-                        stay_master = self.handle_packet_response(
-                            packet, response)
-                        print('Is Master Read Ahead happened.')
-                        self.is_master = stay_master
+                if self.is_master:
+                    continue
+                try:
+                    success, response = self.transport.receive(
+                        self.actual_timeout)
+                    history += [(True, response)]
+                except TransportLayerException:
+                    # some kind of timeout.
+                    # if we are already master, we can bravely ignore this.
+                    if self.is_master:
+                        return TRANSMIT_OK
+                    else:
+                        raise
+                        return TRANSMIT_TIMEOUT
+                if self.is_master and success:
+                    # we actually have to handle a last packet
+                    stay_master = self.handle_packet_response(
+                        packet, response)
+                    print('Is Master Read Ahead happened.')
+                    self.is_master = stay_master
         except Exception as e:
             self.is_master = True
             raise

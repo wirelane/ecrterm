@@ -6,10 +6,13 @@ Example script to demonstrate a payment process.
 from ecrterm.ecr import ECR, ecr_log
 from ecrterm.packets.base_packets import Registration
 
+
+def printer(lines_of_text):
+    for line in lines_of_text:
+        print(line)
+
+
 if __name__ == '__main__':
-    def printer(lines_of_text):
-        for line in lines_of_text:
-            print(line)
     e = ECR(device='socket://192.168.1.163:20007')
     # reenable logging:
     e.transport.slog = ecr_log
@@ -21,6 +24,7 @@ if __name__ == '__main__':
             ecr_controls_admin=True,
             ecr_controls_payment=True))
 
+        e.wait_for_status()
         status = e.status()
         if status:
             print('Status code of PT is %s' % status)
@@ -34,15 +38,16 @@ if __name__ == '__main__':
                 printer(e.daylog)
             else:
                 print('Unknown Status Code: %s' % status)
-                # status == 0xDC for ReadCard (06 C0) -> Karte drin. 0x9c karte draussen.
+                # status == 0xDC for ReadCard (06 C0) -> Karte drin.
+                # 0x9c karte draussen.
 
-        if e.payment(50):
+        if e.payment(amount_cent=1):
             printer(e.last_printout())
             e.wait_for_status()
             e.show_text(
-                lines=['Auf Wiedersehen!', ' ', 'Zahlung erfolgt'], beeps=0)
+                lines=['Auf Wiedersehen!', ' ', 'Zahlung erfolgt'], beeps=1)
         else:
             e.wait_for_status()
             e.show_text(
                 lines=['Auf Wiedersehen!', ' ', 'Vorgang abgebrochen'],
-                beeps=1)
+                beeps=2)
