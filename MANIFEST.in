@@ -1,7 +1,7 @@
 include LICENSE README.md
 recursive-include ecrterm *
 prune ecrterm/tests
-#recursive-exclude ecrterm __pycache__
-#recursive-exclude ecrterm *.pyc
-#recursive-exclude ecrterm *.pyo
-#recursive-exclude ecrterm *.orig
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
+recursive-exclude * *.pyo
+recursive-exclude * *.orig
