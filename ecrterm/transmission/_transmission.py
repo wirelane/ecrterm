@@ -43,17 +43,6 @@ class Transmission(object):
         """A shortcut for calling the handle_response of the packet."""
         return packet.handle_response(response, self)
 
-    def transmit(self, packet, history=None):
-        # we create a new history:
-        self.last_history = history or []
-        try:
-            ret = self._transmit(packet, self.last_history)
-            self.history += self.last_history
-            return ret
-        except Exception:
-            self.history += self.last_history
-            raise
-
     def _transmit(self, packet, history):
         """
         Transmit the packet, go into slave mode and wait until the whole
@@ -74,7 +63,7 @@ class Transmission(object):
                 self.is_master = self.handle_packet_response(
                     self.last, response)
                 if self.is_master:
-                    continue
+                    break
                 try:
                     success, response = self.transport.receive(
                         self.actual_timeout)
@@ -84,9 +73,7 @@ class Transmission(object):
                     # if we are already master, we can bravely ignore this.
                     if self.is_master:
                         return TRANSMIT_OK
-                    else:
-                        raise
-                        return TRANSMIT_TIMEOUT
+                    raise
                 if self.is_master and success:
                     # we actually have to handle a last packet
                     stay_master = self.handle_packet_response(
@@ -98,3 +85,14 @@ class Transmission(object):
             raise
         self.is_master = True
         return TRANSMIT_OK
+
+    def transmit(self, packet, history=None):
+        # we create a new history:
+        self.last_history = history or []
+        try:
+            ret = self._transmit(packet, self.last_history)
+            self.history += self.last_history
+            return ret
+        except Exception:
+            self.history += self.last_history
+            raise

@@ -1,12 +1,13 @@
 from binascii import hexlify
 from socket import SHUT_RDWR, create_connection
-from socket import timeout as exc_timeout
+from socket import timeout as SocketTimeout
 from struct import unpack
 from typing import Tuple
 
 from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl
 from ecrterm.packets.apdu import APDUPacket
+from ecrterm.exceptions import TransportLayerException, TransportTimeoutException
 from ecrterm.transmission.signals import TIMEOUT_T2
 
 
@@ -39,7 +40,7 @@ class SocketTransport(Transport):
             self.sock = create_connection(
                 address=(self.ip, self.port), timeout=timeout)
             return True
-        except (ConnectionError, exc_timeout) as exc:
+        except (ConnectionError, SocketTimeout) as exc:
             return False
 
     def send(self, apdu, tries: int=0, no_wait: bool=False):
@@ -67,11 +68,14 @@ class SocketTransport(Transport):
         if self._debug:
             print('waiting for', length, 'bytes')
         while recv_bytes < length:
-            chunk = self.sock.recv(length - recv_bytes)
+            try:
+                chunk = self.sock.recv(length - recv_bytes)
+            except SocketTimeout:
+                raise TransportTimeoutException('Timed out.')
             if self._debug:
                 print('received', len(chunk), 'bytes:', hexformat(data=chunk))
             if chunk == b'':
-                raise RuntimeError('Socket connection broken.')
+                raise TransportLayerException('TCP Stream disconnected.')
             result += chunk
             recv_bytes += len(chunk)
         return result
@@ -94,7 +98,6 @@ class SocketTransport(Transport):
         """
         Receive the response from the terminal and return is as `bytes`.
         """
-        self.sock.settimeout(timeout)
         data, length = self._receive_length()
         if not length:  # Length is 0
             return data
@@ -106,6 +109,7 @@ class SocketTransport(Transport):
         """
         Receive data, return success status and ADPUPacket instance.
         """
+        self.sock.settimeout(timeout)
         data = self._receive()
         self.slog(data=bs2hl(binstring=data), incoming=True)
         return True, APDUPacket.parse(blob=data)

@@ -50,7 +50,11 @@ class Packet(APDUPacket):
             self.completion = response
         return False, False
 
-    def handle_response(self, response, tm):
+    def handle_response(self, response, tm) -> bool:
+        """
+        Handle a response for a certain packet type, return `True` if
+        the ECR should become master, `False` otherwise.
+        """
         ihandle, istatus = self._handle_super_response(response, tm)
         if ihandle:
             return istatus
