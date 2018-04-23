@@ -20,7 +20,7 @@ from ecrterm.packets.bmp import BCD
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
-from ecrterm.transmission.transport_tcp import TcpTransport
+from ecrterm.transmission.transport_socket import SocketTransport
 from ecrterm.utils import is_stringlike
 
 
@@ -132,12 +132,6 @@ class ECR(object):
     _state_registered = None
     _state_connected = None
 
-    def __get_last(self):
-        if self.transmitter is not None:
-            return self.transmitter.last
-    # !: Last is a short access for transmitter.last if possible.
-    last = property(__get_last)
-
     def __init__(self, device='/dev/ttyUSB0', password='123456'):
         """
         Initializes an ECR object and connects to the serial device
@@ -147,13 +141,13 @@ class ECR(object):
         You can access the Protocol Handler on low level as
         `transmission`.
 
-        Pass `tcp://` prefixed IP address and port for TCP/IP transport:
-        `tcp://192.168.1.163:20007`
+        Pass `socket://` prefixed IP address and port for TCP/IP
+        transport: `socket://192.168.1.163:20007`
         """
         if device.startswith('/'):
             self.transport = SerialTransport(device)
-        elif device.startswith('tcp://'):
-            self.transport = TcpTransport(uri=device)
+        elif device.startswith('socket://'):
+            self.transport = SocketTransport(uri=device)
         # self.transport.slog = ecr_log
         self.daylog = []
         self.daylog_template = ''
@@ -169,6 +163,12 @@ class ECR(object):
             self._state_connected = True
         else:
             raise Exception('ECR could not connect.')
+
+    def __get_last(self):
+        if self.transmitter is not None:
+            return self.transmitter.last
+    # !: Last is a short access for transmitter.last if possible.
+    last = property(__get_last)
 
     def register(self, config_byte):
         """
@@ -301,10 +301,10 @@ class ECR(object):
         - restarts pt: @see self.restart()
         """
         self.transport.reset()
-        if not self.transport.is_tcp:
+        if self.transport.insert_delays:
             sleep(1)
         ret = self.restart()
-        if not self.transport.is_tcp:
+        if self.transport.insert_delays:
             sleep(1)
         return ret
 
@@ -361,7 +361,7 @@ class ECR(object):
 
         use `last` property to access last packet transmitted.
         """
-        if not self.transport.is_tcp:
+        if self.transport.insert_delays:
             # we actually make a small sleep, allowing better flow.
             sleep(0.2)
         transmission = self.transmitter.transmit(packet)
@@ -380,7 +380,7 @@ class ECR(object):
         status = self.status()
         while status:
             print(TERMINAL_STATUS_CODES.get(status, 'Unknown Status'))
-            if not self.transport.is_tcp:
+            if self.transport.insert_delays:
                 sleep(2)
             status = self.status()
 

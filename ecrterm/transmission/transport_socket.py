@@ -3,15 +3,15 @@ from socket import create_connection
 from ecrterm.common import Transport
 
 
-class TcpTransport(Transport):
+class SocketTransport(Transport):
     """Transport for TCP/IP."""
-    is_tcp = True
+    insert_delays = False
 
     def __init__(self, uri: str):
         """Setup the IP and Port."""
         prefix, ip, port = uri.split(':')
         self.port = int(port)
-        self.ip = ip[2:]
+        self.ip = ip[2:]  # Trim '//' from the beginning
 
     def connect(self, timeout: int=30):
         """Connect to the TCP socket."""

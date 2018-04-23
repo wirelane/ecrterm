@@ -104,7 +104,7 @@ class SerialMessage(object):
 class SerialTransport(Transport):
     SerialCls = serial.Serial
     slog = noop
-    is_tcp = False
+    insert_delays = True
 
     def __init__(self, device):
         self.device = device
