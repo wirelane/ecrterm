@@ -4,8 +4,7 @@ Transmission Basics.
 """
 from ecrterm.exceptions import TransmissionException, TransportLayerException
 from ecrterm.packets.base_packets import PacketReceived
-from ecrterm.transmission.signals import (
-    TIMEOUT_T4_DEFAULT, TRANSMIT_OK, TRANSMIT_TIMEOUT)
+from ecrterm.transmission.signals import TIMEOUT_T4_DEFAULT, TRANSMIT_OK
 
 
 class Transmission(object):

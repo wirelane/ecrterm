@@ -6,8 +6,9 @@ from typing import Tuple
 
 from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl
+from ecrterm.exceptions import (
+    TransportLayerException, TransportTimeoutException)
 from ecrterm.packets.apdu import APDUPacket
-from ecrterm.exceptions import TransportLayerException, TransportTimeoutException
 from ecrterm.transmission.signals import TIMEOUT_T2
 
 
