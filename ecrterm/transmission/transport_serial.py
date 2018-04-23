@@ -8,7 +8,7 @@ The Serial Layer is a transport used for
 
 import serial
 
-from ecrterm.common import Transport
+from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
 from ecrterm.crc import crc_xmodem16
 from ecrterm.exceptions import (
@@ -33,15 +33,11 @@ def std_serial_log(instance, data, incoming=False):
         print('| error in log')
 
 
-def noop(*args, **kwargs):
-    pass
-
-
 class SerialMessage(object):
     """
-        Converts a Packet into a serial message by serializing the packet
-        and inserting it into the final Serial Packet
-        CRC and double-DLEs included.
+    Converts a Packet into a serial message by serializing the packet
+    and inserting it into the final Serial Packet
+    CRC and double-DLEs included.
     """
     apdu = None
 

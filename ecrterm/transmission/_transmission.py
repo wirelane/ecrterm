@@ -5,7 +5,7 @@ Transmission Basics.
 from ecrterm.exceptions import TransmissionException, TransportLayerException
 from ecrterm.packets.base_packets import PacketReceived
 from ecrterm.transmission.signals import (
-    TIMEOUT_T4_DEFAULT, TRANSMIT_ERROR, TRANSMIT_OK, TRANSMIT_TIMEOUT)
+    TIMEOUT_T4_DEFAULT, TRANSMIT_OK, TRANSMIT_TIMEOUT)
 
 
 class Transmission(object):
@@ -65,9 +65,9 @@ class Transmission(object):
         self.is_master = False
         self.last = packet
         try:
-            history += [(False, packet), ]
+            history += [(False, packet)]
             success, response = self.transport.send(packet)
-            history += [(True, response), ]
+            history += [(True, response)]
             # we sent the packet.
             # now lets wait until we get master back.
             while not self.is_master:
@@ -95,6 +95,5 @@ class Transmission(object):
         except Exception as e:
             self.is_master = True
             raise
-            return TRANSMIT_ERROR
         self.is_master = True
         return TRANSMIT_OK

@@ -22,8 +22,10 @@ You should have received a copy of the GNU Lesser General Public License
 along with pyscard; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 """
+import re
 import sys
 from functools import reduce
+from struct import unpack
 
 PACK = 1
 HEX = 2
@@ -32,19 +34,20 @@ COMMA = 8
 
 
 def padd(bytelist, length, padding='FF'):
-    """ Padds a byte list with a constant byte value (default is x0FF)
-        bytelist: the byte list to padd
-        length:   the total length of the resulting byte list;
-                  no padding if length is smaller than the byte list length
-        padding:  padding value (default is 0xff)
+    """
+    Padds a byte list with a constant byte value (default is x0FF)
+    bytelist: the byte list to padd
+    length:   the total length of the resulting byte list;
+              no padding if length is smaller than the byte list length
+    padding:  padding value (default is 0xff)
 
-        returns the padded bytelist
-        example:
-        padd(toBytes(\"3B 65 00 00 9C 11 01 01 03\"), 16) returns
-            [0x3B, 0x65, 0, 0, 0x9C, 0x11, 1, 1, 3, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF]
-        padd(toBytes(\"3B 65 00 00 9C 11 01 01 03\"), 8) returns
-            [0x3B, 0x65, 0, 0, 0x9C, 0x11, 1, 1, 3]
+    returns the padded bytelist
+    example:
+    padd(toBytes(\"3B 65 00 00 9C 11 01 01 03\"), 16) returns
+        [0x3B, 0x65, 0, 0, 0x9C, 0x11, 1, 1, 3, 0xFF, 0xFF, 0xFF, 0xFF,
+        0xFF, 0xFF, 0xFF]
+    padd(toBytes(\"3B 65 00 00 9C 11 01 01 03\"), 8) returns
+        [0x3B, 0x65, 0, 0, 0x9C, 0x11, 1, 1, 3]
     """
 
     if len(bytelist) < length:
@@ -99,8 +102,8 @@ def toBytes(bytestring):
     bytestring: a byte string of the format "3B 65 00 00 9C 11 01 01 03" or
     "3B6500009C11010103" or "3B6500   009C1101  0103"
     """
-    from struct import unpack
-    import re
+    if type(bytestring) in set([bytes, bytearray]):
+        return list(bytestring)
     packedstring = ''.join(re.split('\W+', bytestring))
     if sys.version_info[0] > 2 and isinstance(packedstring, str):
         packedstring = packedstring.encode()

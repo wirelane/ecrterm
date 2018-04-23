@@ -21,7 +21,7 @@ from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
 from ecrterm.transmission.transport_socket import SocketTransport
-from ecrterm.utils import is_stringlike
+from ecrterm.utils import detect_pt_serial, is_stringlike
 
 
 class A(object):
@@ -416,9 +416,9 @@ class ECR(object):
 
     def detect_pt(self):
         # note: this only executes utils.detect_pt with the local ecrterm.
-        from ecrterm.utils import detect_pt
-        result = detect_pt(silent=False, ecr=self, timeout=2)
-        return result
+        if type(self.transport) is SerialTransport:
+            return detect_pt_serial(timeout=2, silent=False, ecr=self)
+        return True
 
     def parse_str(self, s):
         return parse_represented_data(s)

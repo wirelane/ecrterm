@@ -18,7 +18,7 @@ def ensure_bytes(v):
     return v
 
 
-def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
+def detect_pt_serial(device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
     """
     connects to given serial port and tests if a PT is present.
     if present: tries to return version number or True
@@ -35,7 +35,7 @@ def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
     if StatusEnquiry is None:
         from ecrterm.packets.base_packets import StatusEnquiry, Completion
 
-    def __detect_pt(port, timeout, ecr):
+    def __detect_pt_serial(port, timeout, ecr):
         e = ecr or ECR(port)
         # reconnect to have lower timeout
         e.transport.close()
@@ -54,15 +54,15 @@ def detect_pt(device='/dev/ttyUSB0', timeout=2, silent=True, ecr=None):
             e.transport.connect()
     if silent:
         try:
-            return __detect_pt(device, timeout, ecr)
+            return __detect_pt_serial(device, timeout, ecr)
         except Exception:
             return False
     else:
-        return __detect_pt(device, timeout, ecr)
+        return __detect_pt_serial(device, timeout, ecr)
 
 
 if __name__ == '__main__':
-    if detect_pt():
+    if detect_pt_serial():
         print("PT is online at ttyUSB0")
     else:
         print("PT cant be found at ttyUSB0")

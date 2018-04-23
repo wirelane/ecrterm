@@ -25,12 +25,12 @@ class Packet(APDUPacket):
                 introspection, bitmap_stati)
         else:
             introspection = '**%s' % bitmap_stati
-        return "%s{%s %s} %s" % (
+        return '%s{%s %s} %s' % (
             self.__class__.__name__, toHexString([self.cmd_class]),
             toHexString([self.cmd_instr]), introspection)
 
     def _handle_unknown_response(self, response, tm):
-        print("Unknown packet response %s" % response)
+        print('Unknown packet response %s' % response)
         tm.send_received()
         return False
 
@@ -105,15 +105,15 @@ class Registration(Packet):
         # look thru all arguments: all needed fixed arguments here?
         if len(self.fixed_values) < 2:
             raise Exception(
-                "Registration Packet needs passwort and config_byte at least")
+                'Registration Packet needs passwort and config_byte at least')
         elif len(self.fixed_values) < 3 and len(self.bitmaps) > 0:
-            raise Exception("Registration Packet needs CC if you add a bitmap")
+            raise Exception('Registration Packet needs CC if you add a bitmap')
         # look thru all bitmaps: all bitmaps allowed?
         return True
 
     def consume_fixed(self, data, length):
         if length < 4:
-            raise Exception("Registration needs at least 4 bytes.")
+            raise Exception('Registration needs at least 4 bytes.')
         if length >= 4:
             # only password and byte
             # no cc
@@ -155,8 +155,8 @@ class Registration(Packet):
             ret |= 0x8
         else:
             print(
-                "Note: intermediate status not requested, but mandatory in "
-                "CardComplete Terminals")
+                'Note: intermediate status not requested, but mandatory in '
+                'CardComplete Terminals')
         if ecr_controls_payment:
             ret |= 0x10
         # 0010 0000
@@ -236,7 +236,7 @@ class Initialisation(Packet):
     Network-Initialization.
     """
     cmd_instr = 0x93
-    fixed_arguments = ['password', ]
+    fixed_arguments = ['password']
     fixed_values = {'password': '123456'}
     wait_for_completion = True
 
@@ -471,7 +471,7 @@ class IntermediateStatusInformation(Packet):
         return data
 
     def __repr__(self):
-        return "IntermediateStatus{04 FF}: %s" % (
+        return 'IntermediateStatus{04 FF}: %s' % (
             INTERMEDIATE_STATUS_CODES.get(
                 self.fixed_values.get('intermediate_status', None),
                 'No status'))
@@ -511,7 +511,7 @@ class PacketReceivedError(Packet):
         self.cmd_instr = error_code
 
     def __repr__(self):
-        return "PacketReceivedERROR{84 %s}: %s" % (
+        return 'PacketReceivedERROR{84 %s}: %s' % (
             toHexString([self.error_code]),
             ERRORCODES.get(self.error_code, 'Unknown Error'),
         )

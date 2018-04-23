@@ -237,7 +237,7 @@ class APDUPacket(object):
         if is_stringlike(blob):
             # lets convert our string into a bytelist.
             blob = toBytes(blob)
-        if isinstance(blob, list):
+        if type(blob) is list:
             # allright.
             # first we detect our packetclass
             PacketClass = Packets.detect(blob[:2])

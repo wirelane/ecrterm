@@ -276,6 +276,10 @@ DEBUG_PACKET_NAME = {
 }
 
 
+def noop(*args, **kwargs):
+    pass
+
+
 class Logling(object):
     """A simple log interface."""
 
