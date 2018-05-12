@@ -3,6 +3,7 @@ from socket import SHUT_RDWR, create_connection
 from socket import timeout as SocketTimeout
 from struct import unpack
 from typing import Tuple
+from urllib.parse import parse_qs, urlsplit
 
 from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl
@@ -24,19 +25,32 @@ class SocketTransport(Transport):
     """Transport for TCP/IP."""
     insert_delays = False
     slog = noop
+    defaults = dict(connect_timeout=5)
 
     def __init__(self, uri: str, debug: bool=False):
-        """Setup the IP and Port."""
-        prefix, ip, port = uri.split(':')
+        """
+        Setup the IP and Port. You can set various timeouts by passing
+        it in the uri. An example:
+        `socket://192.168.1.163:20007?connect_timeout=5`
+        """
+        parsed = urlsplit(url=uri)
+        if ':' not in parsed.netloc:
+            raise AttributeError(
+                'uri needs an IP and a port with : separated.')
+        self.ip, port = parsed.netloc.split(':')
         self.port = int(port)
-        self.ip = ip[2:]  # Trim '//' from the beginning
+        qs_parsed = parse_qs(qs=parsed.query)
+        self.connect_timeout = int(qs_parsed.get(
+            'connect_timeout', [self.defaults['connect_timeout']])[0])
         self._debug = debug
 
-    def connect(self, timeout: int=30) -> bool:
+    def connect(self, timeout: int=None) -> bool:
         """
         Connect to the TCP socket. Return `True` on successful
         connection, `False` on an unsuccessful one.
         """
+        if timeout is None:
+            timeout = self.connect_timeout
         try:
             self.sock = create_connection(
                 address=(self.ip, self.port), timeout=timeout)
