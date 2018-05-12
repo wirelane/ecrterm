@@ -8,7 +8,8 @@ from urllib.parse import parse_qs, urlsplit
 from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl
 from ecrterm.exceptions import (
-    TransportLayerException, TransportTimeoutException)
+    TransportConnectionFailed, TransportLayerException,
+    TransportTimeoutException)
 from ecrterm.packets.apdu import APDUPacket
 from ecrterm.transmission.signals import TIMEOUT_T2
 
@@ -56,7 +57,7 @@ class SocketTransport(Transport):
                 address=(self.ip, self.port), timeout=timeout)
             return True
         except (ConnectionError, SocketTimeout) as exc:
-            return False
+            raise TransportConnectionFailed(exc.args[0])
 
     def send(self, apdu, tries: int=0, no_wait: bool=False):
         """Send data."""
