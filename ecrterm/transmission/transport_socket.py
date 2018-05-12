@@ -1,5 +1,7 @@
 from binascii import hexlify
-from socket import SHUT_RDWR, create_connection
+from socket import (
+    IPPROTO_TCP, SHUT_RDWR, SO_KEEPALIVE, SOL_SOCKET, TCP_KEEPCNT,
+    TCP_KEEPIDLE, TCP_KEEPINTVL, create_connection)
 from socket import timeout as SocketTimeout
 from struct import unpack
 from typing import Tuple
@@ -23,17 +25,22 @@ def hexformat(data: bytes) -> str:
 
 
 class SocketTransport(Transport):
-    """Transport for TCP/IP."""
+    """
+    Transport for TCP/IP. You can set various timeouts by passing
+    it in the uri. An example:
+    `socket://192.168.1.163:20007?connect_timeout=5&so_keepalive=5&tcp_keepidle=1&tcp_keepintvl=3&tcp_keepcnt=5`
+
+    See http://man7.org/linux/man-pages/man7/tcp.7.html for TCP
+    flags details.
+    """
     insert_delays = False
     slog = noop
-    defaults = dict(connect_timeout=5)
+    defaults = dict(
+        connect_timeout=5, so_keepalive=0, tcp_keepidle=1, tcp_keepintvl=3,
+        tcp_keepcnt=5)
 
     def __init__(self, uri: str, debug: bool=False):
-        """
-        Setup the IP and Port. You can set various timeouts by passing
-        it in the uri. An example:
-        `socket://192.168.1.163:20007?connect_timeout=5`
-        """
+        """Setup the IP and Port."""
         parsed = urlsplit(url=uri)
         if ':' not in parsed.netloc:
             raise AttributeError(
@@ -43,6 +50,14 @@ class SocketTransport(Transport):
         qs_parsed = parse_qs(qs=parsed.query)
         self.connect_timeout = int(qs_parsed.get(
             'connect_timeout', [self.defaults['connect_timeout']])[0])
+        self.so_keepalive = int(qs_parsed.get(
+            'so_keepalive', [self.defaults['so_keepalive']])[0])
+        self.tcp_keepidle = int(qs_parsed.get(
+            'tcp_keepidle', [self.defaults['tcp_keepidle']])[0])
+        self.tcp_keepintvl = int(qs_parsed.get(
+            'tcp_keepintvl', [self.defaults['tcp_keepintvl']])[0])
+        self.tcp_keepcnt = int(qs_parsed.get(
+            'tcp_keepcnt', [self.defaults['tcp_keepcnt']])[0])
         self._debug = debug
 
     def connect(self, timeout: int=None) -> bool:
@@ -55,6 +70,18 @@ class SocketTransport(Transport):
         try:
             self.sock = create_connection(
                 address=(self.ip, self.port), timeout=timeout)
+            if self.so_keepalive:
+                self.sock.setsockopt(
+                    SOL_SOCKET, SO_KEEPALIVE, self.so_keepalive)
+            if self.tcp_keepidle:
+                self.sock.setsockopt(
+                    IPPROTO_TCP, TCP_KEEPIDLE, self.tcp_keepidle)
+            if self.tcp_keepintvl:
+                self.sock.setsockopt(
+                    IPPROTO_TCP, TCP_KEEPINTVL, self.tcp_keepintvl)
+            if self.tcp_keepcnt:
+                self.sock.setsockopt(
+                    IPPROTO_TCP, TCP_KEEPCNT, self.tcp_keepcnt)
             return True
         except (ConnectionError, SocketTimeout) as exc:
             raise TransportConnectionFailed(exc.args[0])
