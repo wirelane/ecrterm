@@ -11,7 +11,8 @@ from time import sleep
 
 from ecrterm.common import TERMINAL_STATUS_CODES
 from ecrterm.conv import bs2hl, toBytes, toHexString
-from ecrterm.exceptions import TransportLayerException
+from ecrterm.exceptions import (
+    TransportConnectionFailed, TransportLayerException)
 from ecrterm.packets.apdu import Packets
 from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
@@ -163,7 +164,7 @@ class ECR(object):
             self.transmitter = Transmission(self.transport)
             self._state_connected = True
         else:
-            raise Exception('ECR could not connect.')
+            raise TransportConnectionFailed('ECR could not connect.')
 
     def __get_last(self):
         if self.transmitter is not None:

@@ -10,6 +10,10 @@ class TransportLayerException(ZVTException):
     pass
 
 
+class TransportConnectionFailed(TransportLayerException):
+    """Raised when the transport can't connect."""
+
+
 class TransportTimeoutException(TransportLayerException):
     pass
 
