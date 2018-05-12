@@ -1,9 +1,10 @@
 from binascii import hexlify
 from socket import (
     IPPROTO_TCP, SHUT_RDWR, SO_KEEPALIVE, SOL_SOCKET, TCP_KEEPCNT,
-    TCP_KEEPIDLE, TCP_KEEPINTVL, create_connection)
+    create_connection)
 from socket import timeout as SocketTimeout
 from struct import unpack
+from sys import platform
 from typing import Tuple
 from urllib.parse import parse_qs, urlsplit
 
@@ -14,6 +15,9 @@ from ecrterm.exceptions import (
     TransportTimeoutException)
 from ecrterm.packets.apdu import APDUPacket
 from ecrterm.transmission.signals import TIMEOUT_T2
+
+if platform != 'win32':
+    from socket import TCP_KEEPIDLE, TCP_KEEPINTVL
 
 
 def hexformat(data: bytes) -> str:
@@ -73,10 +77,10 @@ class SocketTransport(Transport):
             if self.so_keepalive:
                 self.sock.setsockopt(
                     SOL_SOCKET, SO_KEEPALIVE, self.so_keepalive)
-            if self.tcp_keepidle:
+            if self.tcp_keepidle and platform != 'win32':
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPIDLE, self.tcp_keepidle)
-            if self.tcp_keepintvl:
+            if self.tcp_keepintvl and platform != 'win32':
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPINTVL, self.tcp_keepintvl)
             if self.tcp_keepcnt:
