@@ -16,8 +16,10 @@ from ecrterm.exceptions import (
 from ecrterm.packets.apdu import APDUPacket
 from ecrterm.transmission.signals import TIMEOUT_T2
 
-if platform != 'win32':
+if platform == 'linux':
     from socket import TCP_KEEPIDLE, TCP_KEEPINTVL
+elif platform == 'darwin':
+    from socket import TCP_KEEPINTVL
 
 
 def hexformat(data: bytes) -> str:
@@ -77,10 +79,10 @@ class SocketTransport(Transport):
             if self.so_keepalive:
                 self.sock.setsockopt(
                     SOL_SOCKET, SO_KEEPALIVE, self.so_keepalive)
-            if self.tcp_keepidle and platform != 'win32':
+            if self.tcp_keepidle and platform == 'linux':
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPIDLE, self.tcp_keepidle)
-            if self.tcp_keepintvl and platform != 'win32':
+            if self.tcp_keepintvl and platform in set(['linux', 'darwin']):
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPINTVL, self.tcp_keepintvl)
             if self.tcp_keepcnt:
