@@ -43,7 +43,7 @@ class SocketTransport(Transport):
     slog = noop
     defaults = dict(
         connect_timeout=5, so_keepalive=0, tcp_keepidle=1, tcp_keepintvl=3,
-        tcp_keepcnt=5, debug='false')
+        tcp_keepcnt=5, debug='false', packetdebug='false')
 
     def __init__(self, uri: str):
         """Setup the IP and Port."""
@@ -66,6 +66,11 @@ class SocketTransport(Transport):
             'tcp_keepcnt', [self.defaults['tcp_keepcnt']])[0])
         self._debug = qs_parsed.get(
             'debug', [self.defaults['debug']])[0] == 'true'
+        self._packetdebug = qs_parsed.get(
+            'packetdebug', [self.defaults['packetdebug']])[0] == 'true'
+        if self._debug:
+            from ecrterm.ecr import ecr_log
+            self.slog = ecr_log
 
     def connect(self, timeout: int=None) -> bool:
         """
@@ -101,7 +106,7 @@ class SocketTransport(Transport):
         msglen = len(to_send)
         while total_sent < msglen:
             sent = self.sock.send(to_send[total_sent:])
-            if self._debug:
+            if self._packetdebug:
                 print('sent', sent, 'bytes of', hexformat(
                     data=to_send[total_sent:]))
             if sent == 0:
@@ -115,14 +120,14 @@ class SocketTransport(Transport):
         """Receive and return a fixed amount of bytes."""
         recv_bytes = 0
         result = b''
-        if self._debug:
-            print('waiting for', length, 'bytes')
+        if self._packetdebug:
+            print('\nwaiting for', length, 'bytes')
         while recv_bytes < length:
             try:
                 chunk = self.sock.recv(length - recv_bytes)
             except SocketTimeout:
                 raise TransportTimeoutException('Timed out.')
-            if self._debug:
+            if self._packetdebug:
                 print('received', len(chunk), 'bytes:', hexformat(data=chunk))
             if chunk == b'':
                 raise TransportLayerException('TCP Stream disconnected.')
