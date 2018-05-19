@@ -43,9 +43,9 @@ class SocketTransport(Transport):
     slog = noop
     defaults = dict(
         connect_timeout=5, so_keepalive=0, tcp_keepidle=1, tcp_keepintvl=3,
-        tcp_keepcnt=5)
+        tcp_keepcnt=5, debug='false')
 
-    def __init__(self, uri: str, debug: bool=False):
+    def __init__(self, uri: str):
         """Setup the IP and Port."""
         parsed = urlsplit(url=uri)
         if ':' not in parsed.netloc:
@@ -64,7 +64,8 @@ class SocketTransport(Transport):
             'tcp_keepintvl', [self.defaults['tcp_keepintvl']])[0])
         self.tcp_keepcnt = int(qs_parsed.get(
             'tcp_keepcnt', [self.defaults['tcp_keepcnt']])[0])
-        self._debug = debug
+        self._debug = qs_parsed.get(
+            'debug', [self.defaults['debug']])[0] == 'true'
 
     def connect(self, timeout: int=None) -> bool:
         """
