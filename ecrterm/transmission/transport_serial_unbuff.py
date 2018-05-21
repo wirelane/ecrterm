@@ -2,7 +2,6 @@ from os import read as os_read
 from select import select
 
 import serial  # @UnresolvedImport
-
 from ecrterm.transmission.transport_serial import SerialTransport
 
 

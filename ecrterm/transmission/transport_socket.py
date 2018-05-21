@@ -1,7 +1,6 @@
 from binascii import hexlify
 from socket import (
-    IPPROTO_TCP, SHUT_RDWR, SO_KEEPALIVE, SOL_SOCKET, TCP_KEEPCNT,
-    create_connection)
+    IPPROTO_TCP, SHUT_RDWR, SO_KEEPALIVE, SOL_SOCKET, create_connection)
 from socket import timeout as SocketTimeout
 from struct import unpack
 from sys import platform
@@ -20,6 +19,10 @@ if platform == 'linux':
     from socket import TCP_KEEPIDLE, TCP_KEEPINTVL
 elif platform == 'darwin':
     from socket import TCP_KEEPINTVL
+try:
+    from socket import TCP_KEEPCNT
+except ImportError:
+    TCP_KEEPCNT = None
 
 
 def hexformat(data: bytes) -> str:
@@ -91,7 +94,7 @@ class SocketTransport(Transport):
             if self.tcp_keepintvl and platform in set(['linux', 'darwin']):
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPINTVL, self.tcp_keepintvl)
-            if self.tcp_keepcnt:
+            if self.tcp_keepcnt and TCP_KEEPCNT:
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPCNT, self.tcp_keepcnt)
             return True

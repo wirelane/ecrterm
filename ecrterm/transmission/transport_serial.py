@@ -7,7 +7,6 @@ The Serial Layer is a transport used for
 """
 
 import serial
-
 from ecrterm.common import Transport, noop
 from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
 from ecrterm.crc import crc_xmodem16
