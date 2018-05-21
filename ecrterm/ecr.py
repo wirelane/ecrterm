@@ -282,7 +282,7 @@ class ECR(object):
             # now check if the packet actually got what it wanted.
             if self.transmitter.last.completion:
                 if isinstance(self.transmitter.last.completion, Completion):
-                    return self.transmitter.last.completion
+                    return True
             else:
                 return False
         else:
