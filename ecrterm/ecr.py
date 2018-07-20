@@ -145,7 +145,7 @@ class ECR(object):
         Pass `socket://` prefixed IP address and port for TCP/IP
         transport: `socket://192.168.1.163:20007`
         """
-        if device.startswith('/'):
+        if device.startswith('/') or device.startswith('COM'):
             self.transport = SerialTransport(device)
         elif device.startswith('socket://'):
             self.transport = SocketTransport(uri=device)
