@@ -266,17 +266,20 @@ class ECR(object):
                 printout += [packet.fixed_values['text']]
         return printout
 
-    def payment(self, amount_cent=50):
+    def payment(self, amount_cent=50, listener=None):
         """
         executes a payment in amount of cents.
         @returns: True, if payment went through, or False if it was
         canceled.
         throws exceptions.
         """
-        code = self.transmit(packet=Authorisation(
+        packet = Authorisation(
             amount=amount_cent,  # in cents.
             currency_code=978,  # euro, only one that works, can be skipped.
-        ))
+        )
+        if listener:
+            packet.register_response_listener(listener)
+        code = self.transmit(packet=packet)
 
         if code == 0:
             # now check if the packet actually got what it wanted.

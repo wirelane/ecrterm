@@ -10,6 +10,10 @@ class Packet(APDUPacket):
     wait_for_completion = False
     completion = None
 
+    def __init__(self, *args, **kwargs):
+        self.response_listener = None
+        super().__init__(*args, **kwargs)
+
     def bitmaps_as_dict(self):
         ret = {}
         for r in self.bitmaps:
@@ -50,6 +54,9 @@ class Packet(APDUPacket):
             self.completion = response
         return False, False
 
+    def register_response_listener(self, listener):
+        self.response_listener = listener
+
     def handle_response(self, response, tm) -> bool:
         """
         Handle a response for a certain packet type, return `True` if
@@ -73,16 +80,24 @@ class Packet(APDUPacket):
         elif isinstance(response, StatusInformation):
             # @todo: status infomation packets
             tm.send_received()
+            if self.response_listener:
+                self.response_listener(response)
             return False
         elif isinstance(response, IntermediateStatusInformation):
             # @todo: extended status information packets.
             tm.send_received()
+            if self.response_listener:
+                self.response_listener(response)
             return False
         elif isinstance(response, PrintLine):
             tm.send_received()
+            if self.response_listener:
+                self.response_listener(response)
             return False
         elif isinstance(response, PrintTextBlock):
             tm.send_received()
+            if self.response_listener:
+                self.response_listener(response)
             return False
         else:
             return self._handle_unknown_response(response, tm)
