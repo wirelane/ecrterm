@@ -9,10 +9,7 @@ from ecrterm.packets.bmp import BCD, LLLVAR
 class Packet(APDUPacket):
     wait_for_completion = False
     completion = None
-
-    def __init__(self, *args, **kwargs):
-        self.response_listener = None
-        super().__init__(*args, **kwargs)
+    response_listener = None
 
     def bitmaps_as_dict(self):
         ret = {}

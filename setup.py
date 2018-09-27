@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 from ecrterm import __version__
 
 setup(
-    name='ecrterm',
+    name='py3-ecrterm',
     version=__version__,
     packages=find_packages(exclude=['ecrterm.tests']),
     license='LGPL-3',
