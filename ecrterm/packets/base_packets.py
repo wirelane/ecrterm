@@ -316,12 +316,13 @@ class Completion(Packet):
                 l_var = LLLVAR()
                 rest = l_var.parse(data)
                 self.fixed_values['sw-version'] = l_var.value()
-                if len(rest) == 1:
+                if len(rest) >= 1:
                     self.fixed_values['terminal-status'] = rest[0]
+                    # FIXME Ignores TLV components
                     return []
                 else:
                     self.fixed_values = {}
-                return data
+                    return data
             except Exception:
                 pass
         return data
