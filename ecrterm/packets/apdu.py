@@ -210,7 +210,7 @@ class APDUPacket(object):
         if blob[pos] == 0xff:
             # length field is next two bytes.
             # @todo: could be wrong:
-            length = (blob[pos + 1] << 8) + blob[pos + 2]
+            length = (blob[pos + 2] << 8) + blob[pos + 1]
             pos += 2  # consume 2 bytes.
         else:
             length = blob[pos]
