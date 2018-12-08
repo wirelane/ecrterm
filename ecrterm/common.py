@@ -311,6 +311,8 @@ class Dumpling(object):
 
 
 class Transport(Logling):
+    insert_delays = False
+
     def connect(self, *args, **kwargs):
         """
         connect to transport.
