@@ -228,7 +228,7 @@ class ECR(object):
             eod_info['terminal-id'] = self.terminal_id
             return eod_info
 
-    def end_of_day(self):
+    def end_of_day(self, listener=None):
         """
         - sends an end of day packet.
         - saves the log in `daylog`
@@ -238,7 +238,10 @@ class ECR(object):
         # old_histoire = self.transmitter.history
         # self.transmitter.history = []
         # we send the packet
-        result = self.transmit(EndOfDay(self.password))
+        packet = EndOfDay(self.password)
+        if listener:
+            packet.register_response_listener(listener)
+        result = self.transmit(packet=packet)
         # now save the log
         self.daylog = self.last_printout()
 
