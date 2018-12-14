@@ -452,16 +452,18 @@ class StatusInformation(Packet):
 
         # adding a formatted version
         tn = 0
+        float_version = {}
         for key, value in ret.items():
             if key.startswith('turnover-'):
                 key_id = key.replace('turnover-', '')
                 # add a key with a formatted representation.
                 v = float(value) / 100.0
-                ret['float-%s' % key_id] = v
+                float_version['float-%s' % key_id] = v
             elif key.startswith('number-'):
                 # add total numbers.
                 tn += int(value)
         ret['number-total'] = tn
+        ret.update(float_version)
         return ret
 
 
