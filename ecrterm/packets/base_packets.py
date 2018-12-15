@@ -298,6 +298,19 @@ class DisplayTextIntInput(Packet):
 Packets.register(DisplayTextIntInput)
 
 
+class AbortCommand(Packet):
+    """
+    06 B0
+    * Sent by ECR to abort a running transaction in the PT
+    * Allowed without master rights, but only for some commands
+    """
+    cmd_class = 0x06
+    cmd_instr =  0xb0
+
+
+Packets.register(AbortCommand)
+
+
 class Completion(Packet):
     """
     06 0F
