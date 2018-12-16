@@ -172,12 +172,12 @@ class ECR(object):
     # !: Last is a short access for transmitter.last if possible.
     last = property(__get_last)
 
-    def register(self, config_byte):
+    def register(self, config_byte, **kwargs):
         """
         registers this ECR at the PT, locking menus
         for real world conditions.
         """
-        kwargs = {}
+        kwargs = dict(kwargs)
         if self.password:
             kwargs['password'] = self.password
         if config_byte is not None:
