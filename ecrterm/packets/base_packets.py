@@ -302,7 +302,7 @@ class AbortCommand(Packet):
     * Allowed without master rights, but only for some commands
     """
     cmd_class = 0x06
-    cmd_instr =  0xb0
+    cmd_instr = 0xb0
 
 
 Packets.register(AbortCommand)
