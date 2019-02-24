@@ -5,7 +5,6 @@ The Serial Layer is a transport used for
 
 @author g4b
 """
-import time
 
 import serial
 from ecrterm.common import Transport, noop
@@ -17,6 +16,7 @@ from ecrterm.packets.apdu import APDUPacket
 from ecrterm.transmission.signals import (
     ACK, DLE, ETX, NAK, STX, TIMEOUT_T1, TIMEOUT_T2)
 from ecrterm.utils import ensure_bytes, is_stringlike
+from time import time
 
 SERIAL_DEBUG = False
 
@@ -249,14 +249,13 @@ class SerialTransport(Transport):
         """
         if message:
             self.write(message.as_bin())
-            # time.sleep(0.1)
             acknowledge = b''
-            ts_start = time.time()
+            ts_start = time()
             while not acknowledge:
                 acknowledge = self.connection.read(1)
                 # With ingenico devices, acknowledge is often empty.
                 # Just retrying seems to help.
-                if time.time() - ts_start > 1:
+                if time() - ts_start > 1:
                     break
             self.slog(acknowledge, True)
             # if nak, we retry, if ack, we read, if other, we raise.
