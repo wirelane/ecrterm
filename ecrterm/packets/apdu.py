@@ -149,7 +149,7 @@ class APDUPacket(object):
             # we have fixed arguments here
             for i in range(len(self.fixed_arguments)):
                 val = self.fixed_values.get(self.fixed_arguments[i], None)
-                if val:
+                if val is not None:
                     if is_stringlike(val):
                         val = toBytes(val)
                     elif isinstance(val, list):

@@ -315,10 +315,11 @@ class Completion(Packet):
     * PT>ECR
     """
     cmd_instr = 0xf
+    fixed_arguments = ['terminal-status', 'sw-version']
 
     def consume_fixed(self, data, length):
         if length == 1:
-            self.fixed_values['terminal_status'] = data[0]
+            self.fixed_values['terminal-status'] = data[0]
             return []
         elif length >= 2:
             try:
