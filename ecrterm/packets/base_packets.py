@@ -568,7 +568,7 @@ class Authorisation(Packet):
     allowed_bitmaps = [
         'amount', 'cc', 'payment_type', 'track_1', 'card_expire',
         'card_number', 'track_2', 'track_3', 'timeout', 'max_status_infos',
-        'pump_nr', 'cvv', 'additional', 'card_type']
+        'pump_nr', 'cvv', 'additional', 'card_type', 'tlv']
 
 
 Packets.register(Authorisation)
