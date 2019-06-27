@@ -16,6 +16,7 @@ from ecrterm.packets.apdu import APDUPacket
 from ecrterm.transmission.signals import (
     ACK, DLE, ETX, NAK, STX, TIMEOUT_T1, TIMEOUT_T2)
 from ecrterm.utils import ensure_bytes, is_stringlike
+from time import time
 
 SERIAL_DEBUG = False
 
@@ -248,8 +249,14 @@ class SerialTransport(Transport):
         """
         if message:
             self.write(message.as_bin())
-            # time.sleep(0.1)
-            acknowledge = self.connection.read(1)
+            acknowledge = b''
+            ts_start = time()
+            while not acknowledge:
+                acknowledge = self.connection.read(1)
+                # With ingenico devices, acknowledge is often empty.
+                # Just retrying seems to help.
+                if time() - ts_start > 1:
+                    break
             self.slog(acknowledge, True)
             # if nak, we retry, if ack, we read, if other, we raise.
             if acknowledge == ensure_bytes(chr(ACK)):
@@ -264,8 +271,6 @@ class SerialTransport(Transport):
                 # else:
                 raise TransportLayerException('Could not send message')
             elif not acknowledge:
-                # this happens quite a lot with the ingenico devices.
-                # possibly a workaround would be nice.
                 raise TransportTimeoutException('No Answer, Possible Timeout')
             else:
                 raise TransportLayerException(

@@ -9,10 +9,7 @@ from ecrterm.packets.bmp import BCD, LLLVAR
 class Packet(APDUPacket):
     wait_for_completion = False
     completion = None
-
-    def __init__(self, *args, **kwargs):
-        self.response_listener = None
-        super().__init__(*args, **kwargs)
+    response_listener = None
 
     def bitmaps_as_dict(self):
         ret = {}
@@ -305,7 +302,7 @@ class AbortCommand(Packet):
     * Allowed without master rights, but only for some commands
     """
     cmd_class = 0x06
-    cmd_instr =  0xb0
+    cmd_instr = 0xb0
 
 
 Packets.register(AbortCommand)
