@@ -94,7 +94,7 @@ class APDUPacket(object):
             i += 1
         # the kwargs are the bitmaps.
         bitmaps = []
-        for k, v in kwargs.items():
+        for k, v in sorted(kwargs.items()):
             if k in self.fixed_arguments:
                 fvalues[k] = v
             else:
