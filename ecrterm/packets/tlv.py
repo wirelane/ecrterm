@@ -1,69 +1,208 @@
-"""
-TLV Container Format.
+from enum import IntEnum
+import string
 
-    TAG FIELD:
-        # first byte:
-        # b8,b7: class visibility
-        # b6: data object constructed?
-        # b5-b2: tag number.
-        # b1: if 1, continue at next byte.
-
-        # next byte:
-        b8: last byte?
-        ... number.
-
-    LENGTH:
-        # b8 if 0, length is a 7 bit number.
-        # b8 if 1, this byte only codes how many follow.
-"""
-from ecrterm.packets.bmp import BMP
+from typing import Tuple, TypeVar, Type, List
 
 
-class TLV(BMP):
-    _id = 0x06
+class TLVClass(IntEnum):
+    UNIVERSAL = 0
+    APPLICATION = 1
+    CONTEXT = 2
+    PRIVATE = 3
+
+
+def read_tlv_tag(data: bytes, pos: int) -> Tuple[int, int]:
+    tag = data[pos]
+    pos += 1
+    if tag & 0x1f == 0x1f:
+        while data[pos] & 0x80:
+            tag = (tag << 8) | data[pos]
+            pos += 1
+        tag = (tag << 8) | data[pos]
+        pos += 1
+    return tag, pos
+
+
+def read_tlv_length(data: bytes, pos: int) -> Tuple[int, int]:
+    if (data[pos] & 0x80) == 0:
+        length = data[pos]
+        pos += 1
+    else:
+        ll = data[pos] & 0x7f
+        pos += 1
+        length = 0
+        for i in range(ll):
+            length = (length << 8) | data[pos]
+            pos += 1
+        length = length
+    return length, pos
+
+
+def make_tlv_tag(tag: int) -> bytes:
+    retval = bytearray()
+    while tag > 0:
+        retval.insert(0, tag & 0xff)
+        tag = tag >> 8
+    return bytes(retval)
+
+
+def make_tlv_length(length: int) -> bytes:
+    if length < 0x80:
+        return bytes([length])
+    else:
+        retval = bytearray()
+        while length:
+            retval.insert(0, length & 0xff)
+            length = length >> 8
+        retval.insert(0, len(retval))
+        return bytes(retval)
+
+
+TLVItemType = TypeVar('TLVItemType', bound='TLVItem')
+TLVConstructedItemType = TypeVar('TLVConstructedItemType', bound='TLVConstructedItem')
+TLVContainerType = TypeVar('TLVContainerType', bound='TLVContainer')
+
+
+class TLVItem:
+    def __init__(self, tag=None, length=None, value=None):
+        self._tag = None
+        self._constructed = None
+        self._class = None
+        self.tag = tag
+        self.length = length
+        self.value = value
+        if self.value:
+            self.recalculate_length_field()
+
+    def __repr__(self):
+        return "{}(tag={!r}, length={!r}, value={!r}".format(
+            self.__class__.__name__,
+            self.tag,
+            self.length,
+            self.value
+        )
+
+    @property
+    def tag(self) -> int:
+        return self._tag
+
+    @tag.setter
+    def tag(self, value: int):
+        self._tag = value
+        if value:
+            t = value
+            while t > 0xff:
+                t >>= 8
+            self._constructed = bool(t & 0x20)
+            self._class = TLVClass(t >> 6)
+
+    @property
+    def constructed(self) -> bool:
+        return self._constructed
+
+    @property
+    def tlv_class(self) -> TLVClass:
+        return self._class
 
     @classmethod
-    def length(cls, length):
-        """
-        Transforms a number into a TLV Length ,returns list of bytes.
-        """
-        if length >= 0x80:  # 128 or more...
-            # we need more than 1 byte.
-            # lets see if we need only 2:
-            if length > 0xff:  # 256 or more..
-                # 0x82 followed by high byte and low byte.
-                hb = (length & 0xFF00) >> 8
-                lb = length & 0xFF
-                return [0x80 + 2, hb, lb]
-            else:
-                return [0x80 + 1, length]
-        else:
-            # one byte is enough.
-            return [length, ]
+    def parse_all(cls: Type[TLVItemType], data: bytes) -> List[TLVItemType]:
+        retval = []
+        pos = 0
+        while pos < len(data):
 
-    def parse(self, data):
-        # just find out the length and skip that stuff
-        # if not data:
-        #    # sometimes an empty TLV container happens.
-        #    return []
-        l1 = data[0]
-        if l1 > 0x80:
-            bytes = max(2, l1 - 0x80)
-            if bytes == 2:
-                # hb, lb
-                hb = data[1]
-                lb = data[2]
-                length = (hb << 8) + lb
-                data = data[3:]
-            elif bytes == 1:
-                # one byte.
-                length = data[1]
-                data = data[2:]
-        else:
-            length = l1
-            data = data[1:]
-        self._data = data[:length]
-        return data[length:]
+            tag, pos = read_tlv_tag(data, pos)
 
-    def dump(self):
-        return [self._id] + self.length(len(self._data)) + self._data
+            length, pos = read_tlv_length(data, pos)
+
+            t = tag
+            while t > 0xff:
+                t >>= 8
+            constructed = bool(t & 0x20)
+
+            clazz = TLVConstructedItem if constructed else TLVItem
+
+            value = data[pos: (pos + length)]
+
+            if constructed:
+                value = cls.parse_all(value)
+
+            item = clazz(tag=tag, length=length, value=value)
+
+            pos += item.length
+
+            retval.append(item)
+
+        return retval
+
+    def serialize(self) -> bytes:
+        retval = bytearray(make_tlv_tag(self.tag))
+        retval.extend(make_tlv_length(self.length))
+
+        if self.constructed:
+            for v in self.value:
+                retval.extend(v.serialize())
+        else:
+            retval.extend(self.value)
+
+        return bytes(retval)
+
+    def recalculate_length_field(self):
+        if self.constructed:
+            for v in self.value:
+                v.recalculate_length_field()
+            self.length = sum(len(v.serialize()) for v in self.value)
+        else:
+            self.length = len(self.value)
+
+
+class ContainerAccessMixin:
+    def __getattr__(self, name: str):
+        if name.startswith('x') and all(e in string.hexdigits for e in name[1:]):
+            tag = int(name[1:], 16)
+
+            for item in self.value:
+                if item.tag == tag:
+                    if isinstance(item, ContainerAccessMixin):
+                        return item
+                    return item.value
+
+            raise KeyError("Tag {:02X} not found".format(tag))
+
+
+class TLVConstructedItem(ContainerAccessMixin, TLVItem):
+    def __repr__(self):
+        return "{}(tag={!r}, length={!r}, value={!r})".format(
+            self.__class__.__name__,
+            self.tag,
+            self.length,
+            self.value
+        )
+
+
+class TLVContainer(ContainerAccessMixin):
+    def __init__(self, value: List[TLVItem]):
+        self.value = value
+
+    def __repr__(self):
+        return "{}({!r})".format(self.__class__.__name__, self.value)
+
+    def to_bytes(self) -> bytes:
+        retval = bytearray()
+        for v in self.value:
+            v.recalculate_length_field()
+            retval.extend(v.serialize())
+        return bytes(retval)
+
+    @classmethod
+    def from_bytes(cls: Type[TLVContainerType], data: bytes) -> TLVContainerType:
+        values = TLVItem.parse_all(data)
+        return cls(values)
+
+    def serialize(self) -> bytes:
+        d = self.to_bytes()
+        return bytes(make_tlv_length(len(d))) + d
+
+    @classmethod
+    def parse(cls: Type[TLVContainerType], data: bytes) -> Tuple[TLVContainerType, bytes]:
+        length, pos = read_tlv_length(data, 0)
+        return cls.from_bytes(data[pos:(pos+length)]), data[(pos+length):]

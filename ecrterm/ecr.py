@@ -13,11 +13,9 @@ from ecrterm.common import TERMINAL_STATUS_CODES
 from ecrterm.conv import bs2hl, toBytes, toHexString
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException)
-from ecrterm.packets.apdu import Packets
 from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
     Registration, ResetTerminal, StatusEnquiry, StatusInformation)
-from ecrterm.packets.bmp import BCD
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
@@ -189,9 +187,7 @@ class ECR(object):
             # get the terminal-id if its there.
             for inc, packet in self.transmitter.last_history:
                 if inc and isinstance(packet, Completion):
-                    if 'tid' in packet.bitmaps_as_dict().keys():
-                        self.terminal_id = packet.bitmaps_as_dict()\
-                            .get('tid', BCD(0)).value()
+                    self.terminal_id = packet.as_dict().get('tid', '00'*4)
             # remember this.
             self._state_registered = True
         return ret
@@ -403,23 +399,6 @@ class ECR(object):
                 print(e)
                 continue
             print('-mark-')
-
-    def devprint_packets(self):
-        """
-        dev function to execute the script located in base_packets
-        useful to get a list of all parsed packets.
-        """
-        from pprint import pprint
-        pprint(Packets.packets)
-
-    def devprint_bitmaps(self):
-        """
-        dev function to execute the script located in bitmaps
-        useful to get a list of all valid bitmaps.
-        """
-        from pprint import pprint
-        from ecrterm.packets.bitmaps import BITMAPS_ARGS
-        pprint(BITMAPS_ARGS)
 
     def detect_pt(self):
         # note: this only executes utils.detect_pt with the local ecrterm.

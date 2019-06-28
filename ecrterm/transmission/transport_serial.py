@@ -12,7 +12,8 @@ from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
 from ecrterm.crc import crc_xmodem16
 from ecrterm.exceptions import (
     TransportLayerException, TransportTimeoutException)
-from ecrterm.packets.apdu import APDUPacket
+from ecrterm.packets.apdu import APDU
+from ecrterm.packets.base_packets import Packet
 from ecrterm.transmission.signals import (
     ACK, DLE, ETX, NAK, STX, TIMEOUT_T1, TIMEOUT_T2)
 from ecrterm.utils import ensure_bytes, is_stringlike
@@ -45,8 +46,8 @@ class SerialMessage(object):
         if is_stringlike(apdu):
             # try to get the list of bytes.
             apdu = toBytes(apdu.replace(' ', ''))
-        elif isinstance(apdu, APDUPacket):
-            apdu = apdu.to_list()
+        elif isinstance(apdu, APDU):
+            apdu = list(apdu.serialize())
         self.apdu = apdu
 
     def _get_crc(self):
@@ -238,7 +239,7 @@ class SerialTransport(Transport):
             self.write_nak()
             return False, message.apdu
         # otherwise
-        return True, APDUPacket.parse(message.apdu)
+        return True, Packet.parse(message.apdu)
 
     def send_message(self, message, tries=0, no_wait=False):
         """

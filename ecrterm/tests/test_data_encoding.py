@@ -43,13 +43,13 @@ class TestCaseDataEncoding(TestCase):
     def test_Anmeldung(self):
         # Register Packet std.
         data_expected = '10 02 06 00 06 12 34 56 BA 09 78 10 03 24 C3'
-        pk = Registration()
+        pk = Registration('123456', 0xBA, 978)
         self.assertEqual(data_expected, list_of_bytes(pk))
 
     def test_Initialisierung(self):
         # Initialization Std.
         data_expected = '10 02 06 93 03 12 34 56 10 03 CA A4'
-        pk = Initialisation()
+        pk = Initialisation('123456')
         self.assertEqual(data_expected, list_of_bytes(pk))
 
     def test_Zahlung_eccash(self):
@@ -83,7 +83,7 @@ class TestCaseDataEncoding(TestCase):
     def test_packet_received_error(self):
         data_expected = '10 02 84 9C 00 10 03 C3 41'
         pk = PacketReceivedError()
-        pk.set_error_code(0x9c)
+        pk.cmd_instr = 0x9c
         self.assertEqual(data_expected, list_of_bytes(pk))
 
     def test_packet_resetterminal(self):
@@ -111,7 +111,7 @@ class TestCaseDataEncoding(TestCase):
 
     def test_packet_statusenquiry(self):
         data_expected = '10 02 05 01 03 12 34 56 10 03 E0 43'
-        pk = StatusEnquiry()
+        pk = StatusEnquiry('123456')
         self.assertEqual(data_expected, list_of_bytes(pk))
 
 

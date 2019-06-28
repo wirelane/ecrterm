@@ -1,254 +1,275 @@
 """Classes and Functions which deal with the APDU Layer."""
 
-from logging import debug
+from typing import TypeVar, Type
+from collections import OrderedDict
 
-from six.moves import range
+from .fields import *
+from .bitmaps import BITMAPS
 
-from ecrterm.conv import toBytes
-from ecrterm.exceptions import NotEnoughData
-from ecrterm.packets.bitmaps import BITMAPS_ARGS
-from ecrterm.packets.bmp import BMP, int_word_split
-from ecrterm.utils import is_stringlike
+# Currencies
+CC_EUR = '0978'
+# Command Classes
+CMD_STD = 0x6  # all standard commands, mostly ecr to pt
+CMD_SERVICE = 0x8  # commands mostly for service. mostly ecr to pt.
+CMD_PT = 0x4  # commands from pt to ecr.
+CMD_STATUS = 0x5  # only seen in 05 01 : status inquiry.
+# from pt to ecr only:
+CMD_RESP_OK = 0x80  # work done
+CMD_RESP_ERROR = 0x84  # work had errors
 
 
-class _PacketRegister:
-    """
-    All Packets come into this register. Singleton for each Protocol.
-    """
-    # Currencies
-    CC_EUR = [0x09, 0x78]
-    # Command Classes
-    CMD_STD = 0x6  # all standard commands, mostly ecr to pt
-    CMD_SERVICE = 0x8  # commands mostly for service. mostly ecr to pt.
-    CMD_PT = 0x4  # commands from pt to ecr.
-    CMD_STATUS = 0x5  # only seen in 05 01 : status inquiry.
-    # from pt to ecr only:
-    CMD_RESP_OK = 0x80  # work done
-    CMD_RESP_ERROR = 0x84  # work had errors
+class FieldContainer(type):
+    @classmethod
+    def __prepare__(mcs, name, bases):
+        return OrderedDict()
 
-    def __init__(self):
-        self.packets = {}
+    def __new__(cls, name, bases, classdict):
+        retval = super().__new__(cls, name, bases, classdict)
+        retval.FIELDS = OrderedDict()
+        for supercls in reversed(bases):
+            if hasattr(supercls, 'FIELDS'):
+                retval.FIELDS.update((k, v) for (k, v) in supercls.FIELDS.items())
+        retval.FIELDS.update((k, v) for (k, v) in classdict.items() if isinstance(v, Field))
 
-    def register(self, packet_class):
-        if packet_class.cmd_class:
-            # cmd_class is needed to be registered.
-            if packet_class.cmd_instr is not None:
-                # this packet is a specific tuple of instructions.
-                # it will be registered as such
-                key_str = '%s_%s' % (
-                    hex(packet_class.cmd_class), hex(packet_class.cmd_instr))
-                # debug
-                debug('Registered Class %s for Command Tuple ( %s, %s )'
-                      % (str(packet_class),
-                         hex(packet_class.cmd_class),
-                         hex(packet_class.cmd_instr)))
+        have_optional = False
+        for k, v in retval.FIELDS.items():
+            if v.required:
+                if have_optional:
+                    raise TypeError("Cannot include required field {} after optional fields".format(k))
             else:
-                # this packet handles a variety of supercommands
-                key_str = '%s' % hex(packet_class.cmd_class)
-                # debug
-                debug('Registered Class %s for Super Command Fallback ( %s )'
-                      % (str(packet_class),
-                         hex(packet_class.cmd_class)))
-            self.packets[key_str] = packet_class
+                if not v.ignore_parse_error:
+                    have_optional = True
 
-    def detect(self, datastream):
-        # detects which class to use.
-        if is_stringlike(datastream):
-            # lets convert our string into a bytelist.
-            datastream = toBytes(datastream[:2])
-        # read the first two bytes of the stream.
-        cc, ci = datastream[:2]
-        # print '<| %s %s' % (hex(cc), hex(ci))
-        # now look up if we got this packet class:
-        return self.packets.get(
-            '%s_%s' % (hex(cc), hex(ci)),
-            self.packets.get('%s' % (hex(cc)), None))
+        return retval
 
 
-Packets = _PacketRegister()
+APDUType = TypeVar('APDUType', bound='APDU')
 
 
-class APDUPacket(object):
-    """
-    Packet can be created by binary data or programmatically.
-    Goal is to not save any binary data in the instance anymore.
-    Translation from data to classes and vice versa should be fluent.
-    """
-    cmd_class = 0x6  # standard.
-    cmd_instr = None
-    allowed_bitmaps = None  # None=All, [] = None.
-    fixed_arguments = []
-    fixed_values = {}
+class APDU(metaclass=FieldContainer):
+    AUTOMATIC_SUBCLASS = True
 
-    # Initializing
+    REQUIRED_BITMAPS = []
+    ALLOWED_BITMAPS = None  # None == all
+
     def __init__(self, *args, **kwargs):
-        num_fixed = len(self.fixed_arguments or [])
-        num_given = len(args or [])
-        fvalues = {}
-        if self.fixed_values:
-            fvalues.update(self.fixed_values)
-        i = 0
-        while (i < num_given) and (i < num_fixed):
-            #
-            fvalues[self.fixed_arguments[i]] = args[i]
-            i += 1
-        # the kwargs are the bitmaps.
-        bitmaps = []
-        for k, v in sorted(kwargs.items()):
-            if k in self.fixed_arguments:
-                fvalues[k] = v
-            else:
-                key, klass, info = BITMAPS_ARGS.get(k, (None, None, None))
-                if klass:
-                    bmp = klass(v)
-                    bmp._id = key
-                    bmp._descr = info
-                    bitmaps += [bmp]
-        self.fixed_values = fvalues
-        self.args = args or []
-        self.kwargs = kwargs or {}
-        self.bitmaps = bitmaps
+        self._values = {}
+        self._bitmaps = OrderedDict()
 
-    def validate(self):
-        # look thru all arguments: all needed fixed arguments here?
-        # look thru all bitmaps: all bitmaps allowed?
+        for (name, field), arg in zip(self.FIELDS.items(), args):
+            setattr(self, name, arg)
+        for name, arg in kwargs.items():
+            setattr(self, name, arg)
+
+    def as_dict(self):
+        return OrderedDict(self.items())
+
+    def items(self):
+        return \
+            [(name, getattr(self, name)) for (name, field) in self.FIELDS.items() if field in self._values] + \
+            [(name, getattr(self, name)) for name in self._bitmaps.keys()]
+
+    def __repr__(self):
+        return "{}({})".format(
+            self.__class__.__name__,
+            ", ".join(
+                "{}={!r}".format(k, v)
+                for (k, v) in self.items()
+            )
+        )
+
+    def __getattr__(self, item):
+        bmp = self._bitmaps.get(item, None)
+
+        if bmp is None:
+            for key, (field, name, description) in BITMAPS.items():
+                if item == name:
+                    self._bitmaps[name] = key
+                    bmp = key
+
+        if bmp is None:
+            raise AttributeError("{!r} object has no attribute {!r}".format(self.__class__.__name__, item))
+
+        return BITMAPS[bmp][0].__get__(self)
+
+    def __delattr__(self, item):
+        bmp = self._bitmaps.get(item, None)
+
+        if bmp is not None:
+            BITMAPS[bmp][0].__delete__(self)
+
+        super().__delattr__(item)
+
+    def __setattr__(self, item, value):
+        if item.startswith('_') or item == "FIELDS" or item in self.FIELDS:
+            object.__setattr__(self, item, value)
+            return
+
+        bmp = self._bitmaps.get(item, None)
+
+        if bmp is None:
+            for key, (field, name, description) in BITMAPS.items():
+                if item == name:
+                    self._bitmaps[name] = key
+                    bmp = key
+
+        if bmp is not None:
+            if self.ALLOWED_BITMAPS is not None and BITMAPS[bmp][1] not in self.ALLOWED_BITMAPS:
+                raise AttributeError("Bitmap {:02X} not allowed on {}".format(bmp, self))
+            BITMAPS[bmp][0].__set__(self, value)
+        else:
+            super().__setattr__(item, value)
+
+    @staticmethod
+    def compute_length_field(l: int) -> bytes:
+        if l < 255:
+            return bytes([l])
+        if l < 256 * 256 - 1:
+            return bytes([0xff, l & 0xff, (l >> 8) & 0xff])
+        raise ValueError
+
+    @classmethod
+    def _iterate_subclasses(cls):
+        for clazz in cls.__subclasses__():
+            yield from clazz._iterate_subclasses()
+        yield cls
+
+    @classmethod
+    def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
         return True
 
-    def handle_response(self, response, transmitter):
-        # handle response overwrite
-        pass
-
-    #############################################
-    # Serializing ###############################
-    #############################################
-    @classmethod
-    def data_length(cls, data):
-        """
-        if data length l < 255: length is 1 byte.
-        if data length 254 < l < 65535: length is 3 bytes.
-        L = 0xFF -> following two bytes are length.
-        """
-        data_len = len(data)
-        if data_len > 254:
-            if data_len > 65535:
-                raise NotImplementedError(
-                    "APDU Data length cannot be bigger than 2 bytes.")
-            return [0xFF, ] + int_word_split(data_len)
-        return [data_len]
-
-    def enrich_fixed(self):
-        """
-        fixed arguments should be enriched here into the datastream.
-        as to speak: serialized.
-
-        by default, it will try to serialize fixed_arguments from fixed_values
-        """
-        self.validate()
-        ds = []
-        if self.fixed_arguments and self.fixed_values:
-            # we have fixed arguments here
-            for i in range(len(self.fixed_arguments)):
-                val = self.fixed_values.get(self.fixed_arguments[i], None)
-                if val is not None:
-                    if is_stringlike(val):
-                        val = toBytes(val)
-                    elif isinstance(val, list):
-                        pass
-                    else:
-                        val = [val, ]
-                    # now just save it into ds
-                    ds += val
-        return ds
-
-    def introspect_fixed(self):
-        """Return a description of your fixed data."""
-        return self.fixed_values
-
-    def get_data(self):
-        # getting the data of a packet means it is serialized into bytes.
-        data = []
-        # first, lets get the enriched fixed arguments:
-        data += self.enrich_fixed()
-        # now serialise all our bitmaps.
-        # try to order our bitmaps after allowed_bitmaps maybe?
-        for bitmap in self.bitmaps:
-            # is bitmap allowed?
-            # if y,
-            data += bitmap.dump()
-        # last: insert the length
-        return self.data_length(data) + data
-
-    def to_list(self):
-        return [self.cmd_class, self.cmd_instr or 0] + self.data
-
-    #############################################
-    # Parsing ###################################
-    #############################################
-    def consume_fixed(self, data, length):
-        """
-        Overwrite this Function for your Packet to consume fixed
-        arguments not represented by bitmaps.
-        This data usually comes before any bitmaps are present
-        and each packet has to know for itself, how to handle them.
-
-        data is the whole packet data after the length part
-
-        length is the given data-length coded into the packet.
-        """
-        # consume all fixed arguments from data here.
-        # this might be very different from packet to packet.
-        # if you use fixed_values as store, dont forget to save binary data.
+    def parser_hook(self, data: Union[bytes, List[int]]) -> Union[bytes, List[int]]:
         return data
 
-    def set_data(self, blob):
-        # setting the data of a packet means, it is parsed actually.
-        # note: data does NOT containt cmd_class, cmd_instr anymore!
-        # however, it DOES contain the LENGTH
-        # now we introspect data
-        pos = 0
-        bitmaps = []
-        if blob[pos] == 0xff:
-            # length field is next two bytes.
-            # @todo: could be wrong:
-            length = (blob[pos + 2] << 8) + blob[pos + 1]
-            pos += 2  # consume 2 bytes.
-        else:
-            length = blob[pos]
-        pos += 1  # we move one byte further in all cases.
-        # now we should read our data ahead to length.
-        # look ahead if we have enough data.
-        if len(blob) >= pos + length:
-            data = blob[pos:pos + length]
-        else:
-            raise NotEnoughData('Not enough Data to create the packet data.')
-        # step 1: fixed arguments.
-        # if this packet has some fixed arguments, they have to be
-        # parsed first.
-        data = self.consume_fixed(data, length)
-        # step 2: bitmaps.
-        while data:
-            bmp, data = BMP.read_stream(data)
-            bitmaps += [bmp]
-        self.bitmaps = bitmaps
-    data = property(get_data, set_data)
+    @classmethod
+    def parse(cls: Type[APDUType], data: Union[bytes, List[int]]) -> APDUType:
+        data = bytes(data)
+        # Find more appropriate subclass and use that
+        if cls.AUTOMATIC_SUBCLASS:
+            for clazz in cls._iterate_subclasses():
+                if clazz.can_parse(data) and clazz is not cls:
+                    return clazz.parse(data)
+
+        retval = cls()
+
+        if len(data) >= 2:
+            retval.control_field = bytearray(data[:2])
+            data = data[2:]
+
+        length, data = data[0], data[1:]
+        if length == 0xff:
+            length, data = data[0] + (data << 8), data[2:]
+
+        data = data[:length]
+
+        data = retval.parser_hook(data)
+
+        for name, field in retval.FIELDS.items():
+            if not data:
+                break
+            try:
+                value, data = field.parse(data)
+            except ParseError:
+                if field.ignore_parse_error:
+                    continue
+                else:
+                    raise
+            setattr(retval, name, value)
+
+        # Try to parse the remainder as bitmaps
+        while len(data):
+            key = data[0]
+            field, name, description = BITMAPS.get(key, (None, None, None))
+            if field is None:
+                raise ParseError("Invalid bitmap 0x{:02X}".format(key))
+            value, data = field.parse(data[1:])
+            setattr(retval, name, value)
+
+        # FIXME Mandatory fields.
+        return retval
+
+    def serialize(self) -> bytes:
+        data = bytearray()
+        for name, field in self.FIELDS.items():
+            # FIXME: Mandatory fields.  Esp. in conjunction with bitmaps (defaults?)
+            d = getattr(self, name)
+            if d is not None:
+                data.extend(field.serialize(d))
+        for name, key in self._bitmaps.items():
+            d = getattr(self, name)
+            if d is not None:
+                data.append(key)
+                data.extend(BITMAPS[key][0].serialize(d))
+        return bytes(self.control_field) + self.compute_length_field(len(data)) + data
+
+
+# FIXME Command vs. response vs. packet
+# Is everything a CommandAPDU?
+
+class CommandAPDU(APDU):
+    CMD_CLASS = None
+    CMD_INSTR = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.control_field = [self.CMD_CLASS, self.CMD_INSTR]
 
     @classmethod
-    def parse(cls, blob=''):
-        if is_stringlike(blob):
-            # lets convert our string into a bytelist.
-            blob = toBytes(blob)
-        if type(blob) is list:
-            # allright.
-            # first we detect our packetclass
-            PacketClass = Packets.detect(blob[:2])
-            if PacketClass:
-                instance = PacketClass()
-                # fix for multipackets:
-                if instance.cmd_instr is None:
-                    instance.cmd_instr = blob[1]
-                instance.data = blob[2:]
-                if not instance.validate():
-                    debug('Validation Error')
-                return instance
-            else:
-                debug('Unknown Packet')
+    def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
+        data = bytes(data)
+        return len(data) >= 2 and (
+            cls.CMD_CLASS is Ellipsis or cls.CMD_CLASS == data[0]
+        ) and (
+            cls.CMD_INSTR is Ellipsis or cls.CMD_INSTR == data[1]
+        )
+
+    @property
+    def cmd_class(self):
+        return self.control_field[0]
+
+    @cmd_class.setter
+    def cmd_class(self, v):
+        self.control_field[0] = v
+
+    @property
+    def cmd_instr(self):
+        return self.control_field[1]
+
+    @cmd_instr.setter
+    def cmd_instr(self, v):
+        self.control_field[1] = v
+
+
+class ResponseAPDU(APDU):
+    RESP_CCRC = None
+    RESP_APRC = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.control_field = [self.RESP_CCRC, self.RESP_APRC]
+
+    def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
+        data = bytes(data)
+        return len(data) >= 2 and (
+            cls.RESP_CCRC is Ellipsis or cls.RESP_CCRC == data[0]
+        ) and (
+            cls.RESP_APRC is Ellipsis or cls.RESP_APRC == data[1]
+        )
+
+    @property
+    def resp_ccrc(self):
+        return self.control_field[0]
+
+    @resp_ccrc.setter
+    def resp_ccrc(self, v):
+        self.control_field[0] = v
+
+    @property
+    def resp_aprc(self):
+        return self.control_field[1]
+
+    @resp_aprc.setter
+    def resp_aprc(self, v):
+        self.control_field[1] = v
+
+

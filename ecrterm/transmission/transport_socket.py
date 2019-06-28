@@ -12,7 +12,7 @@ from ecrterm.conv import bs2hl
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException,
     TransportTimeoutException)
-from ecrterm.packets.apdu import APDUPacket
+from ecrterm.packets.base_packets import Packet
 from ecrterm.transmission.signals import TIMEOUT_T2
 
 if platform == 'linux':
@@ -163,14 +163,14 @@ class SocketTransport(Transport):
         return data + new_data
 
     def receive(
-            self, timeout=None, *args, **kwargs) -> Tuple[bool, APDUPacket]:
+            self, timeout=None, *args, **kwargs) -> Tuple[bool, Packet]:
         """
         Receive data, return success status and ADPUPacket instance.
         """
         self.sock.settimeout(timeout)
         data = self._receive()
         self.slog(data=bs2hl(binstring=data), incoming=True)
-        return True, APDUPacket.parse(blob=data)
+        return True, Packet.parse(blob=data)
 
     def close(self):
         """Shutdown and close the connection."""
