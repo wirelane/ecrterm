@@ -284,14 +284,18 @@ class StatusInformation(Packet):
         """
         ret = {}
         # create a dictionary of bitmaps:
-        bdict = self.bitmaps_as_dict()
+        bdict = self.as_dict()
         # at least amount should be present:
         if 'amount' not in bdict.keys():
             return {}
         else:
-            ret = {'amount': int(bdict['amount'].value()), }
+            ret = {'amount': bdict['amount'], }
         # bitmap 0x60 (totals) contains the required information.
         # another bitmap (amount) holds the amount
+
+        ## FIXME Parsing of totals in the parser
+        return ret
+
         if 'totals' not in bdict.keys():
             # this packet holds no detail information but an amount.
             return ret
