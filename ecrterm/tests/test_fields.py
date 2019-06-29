@@ -100,6 +100,15 @@ class TestFields(TestCase):
 
         self.assertEqual(('AS-TID = 13F00013\rAS-Proc-Code = 20 903 00\rCapt.-Ref.= 0000\rAID59: 809258', b''), ls.parse(d))
 
+    def test_bytesfield(self):
+        bf = BytesField()
+
+        d = b'\xff\x01\x02'
+
+        self.assertEqual((d, b''), bf.parse(d))
+
+        self.assertEqual(d, bf.serialize(d))
+
     def test_tlvfield(self):
         tf = TLVField()
 

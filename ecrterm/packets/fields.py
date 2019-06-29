@@ -127,13 +127,15 @@ class IntField(Field):
         return result
 
 
-class StringField(Field):
+class BytesField(Field):
     def parse(self, data: Union[bytes, List[int]]) -> Tuple[str, bytes]:
         return self.from_bytes(data), b''
 
     def serialize(self, data: str) -> bytes:
         return self.to_bytes(data)
 
+
+class StringField(BytesField):
     def from_bytes(self, v: Union[bytes, List[int]]) -> str:
         return bytes(v).decode()
 
