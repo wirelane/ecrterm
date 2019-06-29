@@ -51,10 +51,14 @@ class APDU(metaclass=FieldContainer):
 
     REQUIRED_BITMAPS = []
     ALLOWED_BITMAPS = None  # None == all
+    OVERRIDE_BITMAPS = {}
 
     def __init__(self, *args, **kwargs):
         self._values = {}
         self._bitmaps = OrderedDict()
+
+        self._KNOWN_BITMAPS = dict(BITMAPS)
+        self._KNOWN_BITMAPS.update(self.OVERRIDE_BITMAPS)
 
         for (name, field), arg in zip(self.FIELDS.items(), args):
             setattr(self, name, arg)
@@ -74,7 +78,7 @@ class APDU(metaclass=FieldContainer):
             (
                 k,
                 self.FIELDS[k].represent(v) if k in self.FIELDS
-                else BITMAPS[self._bitmaps[k]][0].represent(v) if k in self._bitmaps
+                else self._KNOWN_BITMAPS[self._bitmaps[k]][0].represent(v) if k in self._bitmaps
                 else "{!r}".format(v)
             )
             for (k, v) in self.items() if v is not None
@@ -91,7 +95,7 @@ class APDU(metaclass=FieldContainer):
         bmp = self._bitmaps.get(item, None)
 
         if bmp is None:
-            for key, (field, name, description) in BITMAPS.items():
+            for key, (field, name, description) in self._KNOWN_BITMAPS.items():
                 if item == name:
                     self._bitmaps[name] = key
                     bmp = key
@@ -99,7 +103,7 @@ class APDU(metaclass=FieldContainer):
         if bmp is None:
             raise AttributeError("{!r} object has no attribute {!r}".format(self.__class__.__name__, item))
 
-        return BITMAPS[bmp][0].__get__(self)
+        return self._KNOWN_BITMAPS[bmp][0].__get__(self)
 
     def get(self, name, default=Ellipsis):
         if default is Ellipsis:
@@ -111,7 +115,7 @@ class APDU(metaclass=FieldContainer):
         bmp = self._bitmaps.get(item, None)
 
         if bmp is not None:
-            BITMAPS[bmp][0].__delete__(self)
+            self._KNOWN_BITMAPS[bmp][0].__delete__(self)
 
         super().__delattr__(item)
 
@@ -123,15 +127,15 @@ class APDU(metaclass=FieldContainer):
         bmp = self._bitmaps.get(item, None)
 
         if bmp is None:
-            for key, (field, name, description) in BITMAPS.items():
+            for key, (field, name, description) in self._KNOWN_BITMAPS.items():
                 if item == name:
                     self._bitmaps[name] = key
                     bmp = key
 
         if bmp is not None:
-            if self.ALLOWED_BITMAPS is not None and BITMAPS[bmp][1] not in self.ALLOWED_BITMAPS:
+            if self.ALLOWED_BITMAPS is not None and self._KNOWN_BITMAPS[bmp][1] not in self.ALLOWED_BITMAPS:
                 raise AttributeError("Bitmap {:02X} not allowed on {}".format(bmp, self))
-            BITMAPS[bmp][0].__set__(self, value)
+            self._KNOWN_BITMAPS[bmp][0].__set__(self, value)
         else:
             super().__setattr__(item, value)
 
@@ -244,7 +248,7 @@ class APDU(metaclass=FieldContainer):
         # Try to parse the remainder as bitmaps
         while len(data):
             key = data[0]
-            field, name, description = BITMAPS.get(key, (None, None, None))
+            field, name, description = self._KNOWN_BITMAPS.get(key, (None, None, None))
             if field is None:
                 raise ParseError("Invalid bitmap 0x{:02X}".format(key))
             value, data = field.parse(data[1:])
@@ -264,7 +268,7 @@ class APDU(metaclass=FieldContainer):
             d = getattr(self, name)
             if d is not None:
                 data.append(key)
-                data.extend(BITMAPS[key][0].serialize(d))
+                data.extend(self._KNOWN_BITMAPS[key][0].serialize(d))
         return bytes(self.control_field) + self.compute_length_field(len(data)) + data
 
 

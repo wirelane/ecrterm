@@ -1,4 +1,5 @@
 from ecrterm.packets.apdu import CommandAPDU
+from ecrterm.packets.fields import BytesField
 from ecrterm.packets.base_packets import LogOff, Initialisation, Registration
 from unittest import TestCase, main
 
@@ -61,6 +62,15 @@ class TestAPDUSerializer(TestCase):
         self.assertEqual(bytearray.fromhex('06000498765441'), c.serialize())
 
 
+class DummyPacket(CommandAPDU):
+    CMD_CLASS = 0xff
+    CMD_INSTR = 0xaa
+
+    OVERRIDE_BITMAPS = {
+        # Warning: This will consume the remainder of the packet. Do not use when more bitmaps are expected.
+        0x06: (BytesField(), 'raw_tlv', 'Unparsed TLV'),
+    }
+
 class TestAPDUBitmaps(TestCase):
     def test_simple_create_serialize(self):
         c = Registration('777777', 0xa0, cc='0978')
@@ -76,6 +86,13 @@ class TestAPDUBitmaps(TestCase):
         self.assertEqual(b'\xaa', c.tlv.x3f21.x60.x55)
         self.assertEqual(b'\xbb', c.tlv.x3f21.x60.x5)
         self.assertEqual(b'\xab\xba', c.tlv.x3f21.x10)
+
+    def test_overrid_bitmaps(self):
+        c = CommandAPDU.parse(bytearray.fromhex('ffaa040602ffaa'))
+
+        self.assertIsInstance(c.raw_tlv, bytes)
+        self.assertEqual(b'\x02\xff\xaa', c.raw_tlv)
+
 
     # FIXME Create empty TLV
     # FIXME Create TLV on access
