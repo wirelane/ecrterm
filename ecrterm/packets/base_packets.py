@@ -238,9 +238,9 @@ class Completion(Packet):
     # the rest of the packet.
 
     sw_version = LLLStringField(required=False, ignore_parse_error=True)
-    terminal_status = ByteField()
+    terminal_status = ByteField(required=False, ignore_parse_error=True)
 
-    ALLOWED_BITMAPS = ['tlv']
+    ALLOWED_BITMAPS = ['tlv', 'status_byte', 'tid', 'currency_code', 'payment_type']
 
 
 class Abort(Packet):

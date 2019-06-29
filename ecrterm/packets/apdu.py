@@ -77,7 +77,7 @@ class APDU(metaclass=FieldContainer):
                 else BITMAPS[self._bitmaps[k]][0].represent(v) if k in self._bitmaps
                 else "{!r}".format(v)
             )
-            for (k, v) in self.items()
+            for (k, v) in self.items() if v is not None
         ]
         return "{}({})".format(
             self.__class__.__name__,
@@ -172,18 +172,68 @@ class APDU(metaclass=FieldContainer):
         data = data[:length]
 
         data = retval.parser_hook(data)
+        blacklist = []
 
-        for name, field in retval.FIELDS.items():
+        while True:
+            try:
+                items = retval._parse_inner(data, blacklist)
+
+                if isinstance(items, Field):
+                    # The parser has indicated the field it thinks is the problem
+                    # Add it to the blacklist and retry
+                    blacklist.append(items)
+                    continue
+
+                # Parsing seems to have completed without incident
+                for k, v in items:
+                    setattr(retval, k, v)
+
+                break
+
+            except ParseError:
+                blacklist_candidates = [
+                    f for f in retval.FIELDS.values()
+                    if not f.required and f.ignore_parse_error and not f in blacklist
+                ]
+                if not blacklist_candidates:
+                    # No more we can do, probably really a parse error
+                    raise
+                else:
+                    blacklist.append(blacklist_candidates[0])
+                    continue
+
+        # FIXME Mandatory fields.
+        return retval
+
+
+
+    def _parse_inner(self, data:bytes, blacklist: List[Field]) -> Union[List[Tuple[str, Any]], Field]:
+        # ~~~~ Strategy to parse the SUPER CURSED Completion packet ~~~~
+        # A) When a Field parser marked required=False, ignore_parse_error=True fails
+        #    it gets added to the blacklist and not tried again
+        # B) When something else fails, the first non-blacklisted field parser
+        #    marked required=False, ignore_parse_error=True gets added to the blacklist
+        #    and the process is started from scratch
+
+        retval = []
+
+        for name, field in self.FIELDS.items():
             if not data:
                 break
+
+            if field in blacklist:
+                continue
+
             try:
                 value, data = field.parse(data)
             except ParseError:
                 if field.ignore_parse_error:
-                    continue
+                    # Indicate this field to the outer loop as being problematic
+                    return field
                 else:
                     raise
-            setattr(retval, name, value)
+
+            retval.append((name, value))
 
         # Try to parse the remainder as bitmaps
         while len(data):
@@ -192,10 +242,10 @@ class APDU(metaclass=FieldContainer):
             if field is None:
                 raise ParseError("Invalid bitmap 0x{:02X}".format(key))
             value, data = field.parse(data[1:])
-            setattr(retval, name, value)
+            retval.append((name, value))
 
-        # FIXME Mandatory fields.
         return retval
+
 
     def serialize(self) -> bytes:
         data = bytearray()
