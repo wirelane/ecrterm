@@ -12,6 +12,8 @@ class Endianness(Enum):
 
 
 class Field:
+    REPR_FORMAT = "{!r}"
+
     def __init__(self, required=True, ignore_parse_error=False, *args, **kwargs):
         self.required = required
         self.ignore_parse_error = ignore_parse_error
@@ -28,6 +30,9 @@ class Field:
 
     def serialize(self, data: Any) -> bytes:
         raise NotImplementedError
+
+    def represent(self, data: Any) -> str:
+        return self.REPR_FORMAT.format(data)
 
     def __set__(self, instance, value):
         instance._values[self] = value
@@ -142,6 +147,7 @@ class StringField(Field):
 
 class ByteField(IntField, FixedLengthField):
     LENGTH = 1
+    REPR_FORMAT = "0x{:02X}"
 
 
 class BCDField(FixedLengthField):

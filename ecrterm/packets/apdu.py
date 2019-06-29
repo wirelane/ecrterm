@@ -70,11 +70,20 @@ class APDU(metaclass=FieldContainer):
             [(name, getattr(self, name)) for name in self._bitmaps.keys()]
 
     def __repr__(self):
+        reps = [
+            (
+                k,
+                self.FIELDS[k].represent(v) if k in self.FIELDS
+                else BITMAPS[self._bitmaps[k]][0].represent(v) if k in self._bitmaps
+                else "{!r}".format(v)
+            )
+            for (k, v) in self.items()
+        ]
         return "{}({})".format(
             self.__class__.__name__,
             ", ".join(
-                "{}={!r}".format(k, v)
-                for (k, v) in self.items()
+                "{}={}".format(k, v)
+                for (k, v) in reps
             )
         )
 
