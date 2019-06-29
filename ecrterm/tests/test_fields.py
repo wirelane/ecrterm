@@ -93,6 +93,13 @@ class TestFields(TestCase):
 
         self.assertEqual(ls.serialize('abc'), b'\xF0\xF0\xF3abc')
 
+    def test_lllstring_regression(self):
+        ls = LLLStringField()
+
+        d = b'\xf0\xf7\xf3AS-TID = 13F00013\rAS-Proc-Code = 20 903 00\rCapt.-Ref.= 0000\rAID59: 809258'
+
+        self.assertEqual(('AS-TID = 13F00013\rAS-Proc-Code = 20 903 00\rCapt.-Ref.= 0000\rAID59: 809258', b''), ls.parse(d))
+
     def test_tlvfield(self):
         tf = TLVField()
 

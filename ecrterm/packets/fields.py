@@ -71,7 +71,7 @@ class LVARField(Field):
         for i in range(self.LL):
             if (data[i] & 0xF0) != 0xF0 or (data[i] & 0x0F) > 9:
                 raise ParseError("L*VAR length header invalid")
-            l = (l * 10) | (data[i] & 0x0F)
+            l = (l * 10) + (data[i] & 0x0F)
         data = data[self.LL:]
 
         v, data = data[:l], data[l:]
