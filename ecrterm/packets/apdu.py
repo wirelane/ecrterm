@@ -101,6 +101,12 @@ class APDU(metaclass=FieldContainer):
 
         return BITMAPS[bmp][0].__get__(self)
 
+    def get(self, name, default=Ellipsis):
+        if default is Ellipsis:
+            return getattr(self, name)
+        else:
+            return getattr(self, name, default)
+
     def __delattr__(self, item):
         bmp = self._bitmaps.get(item, None)
 
