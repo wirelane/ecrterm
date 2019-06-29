@@ -17,6 +17,7 @@ from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
     Registration, ResetTerminal, StatusEnquiry, StatusInformation)
 from ecrterm.transmission._transmission import Transmission
+from ecrterm.packets.tlv import TLVContainer
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
 from ecrterm.transmission.transport_socket import SocketTransport
@@ -275,7 +276,7 @@ class ECR(object):
         packet = Authorisation(
             amount=amount_cent,  # in cents.
             currency_code=978,  # euro, only one that works, can be skipped.
-            tlv='',
+            tlv=TLVContainer([]),
         )
         if listener:
             packet.register_response_listener(listener)
@@ -349,10 +350,8 @@ class ECR(object):
             if isinstance(self.last.completion, Completion):
                 # try to get version
                 if not self.version:
-                    self.version = self.last.completion.fixed_values.get(
-                        'sw-version', None)
-                return self.last.completion.fixed_values.get(
-                    'terminal-status', None)
+                    self.version = self.last.completion.get('sw_version', None)
+                return self.last.completion.status_byte
             # no completion means some error.
         return False
 

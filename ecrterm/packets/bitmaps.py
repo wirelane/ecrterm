@@ -14,7 +14,7 @@ BITMAPS = {
     0x17: (
         BCDField(length=2), 'card_sequence_number', 'card sequence-number'),
     0x19: (
-        ByteField(), 'payment_type',
+        ByteField(), 'status_byte',
         'binary status-byte/payment-type/card-type'),
     0x22: (
         LLVARField(), 'card_number',

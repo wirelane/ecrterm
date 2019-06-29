@@ -240,7 +240,7 @@ class Completion(Packet):
     sw_version = LLLStringField(required=False, ignore_parse_error=True)
     terminal_status = ByteField(required=False, ignore_parse_error=True)
 
-    ALLOWED_BITMAPS = ['tlv', 'status_byte', 'tid', 'currency_code', 'payment_type']
+    ALLOWED_BITMAPS = ['tlv', 'status_byte', 'tid', 'currency_code']
 
 
 class Abort(Packet):
@@ -409,7 +409,7 @@ class Authorisation(Packet):
     wait_for_completion = True
 
     ALLOWED_BITMAPS = [
-        'amount', 'currency_code', 'payment_type', 'track_1', 'card_expire',
+        'amount', 'currency_code', 'status_byte', 'track_1', 'card_expire',
         'card_number', 'track_2', 'track_3', 'timeout', 'max_status_infos',
         'pump_nr', 'cvv', 'additional', 'card_type', 'tlv']
 
