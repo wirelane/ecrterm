@@ -173,7 +173,7 @@ class APDU(metaclass=FieldContainer):
 
         length, data = data[0], data[1:]
         if length == 0xff:
-            length, data = data[0] + (data << 8), data[2:]
+            length, data = data[0] + (data[1] << 8), data[2:]
 
         data = data[:length]
 

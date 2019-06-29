@@ -54,7 +54,7 @@ def make_tlv_length(length: int) -> bytes:
         while length:
             retval.insert(0, length & 0xff)
             length = length >> 8
-        retval.insert(0, len(retval))
+        retval.insert(0, 0x80 | len(retval))
         return bytes(retval)
 
 
