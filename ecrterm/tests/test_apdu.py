@@ -1,6 +1,7 @@
-from ecrterm.packets.apdu import CommandAPDU
-from ecrterm.packets.fields import BytesField
-from ecrterm.packets.base_packets import LogOff, Initialisation, Registration
+from ecrterm.packets.apdu import CommandAPDU, ParseError
+from ecrterm.packets.tlv import TLVContainer
+from ecrterm.packets.fields import ByteField, BytesField, BCDIntField
+from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine
 from unittest import TestCase, main
 
 
@@ -23,6 +24,9 @@ class TestAPDUParser(TestCase):
     def test_parse_fixed_with_optional(self):
         c = CommandAPDU.parse(bytearray.fromhex('060006987654410978'))
         self.assertEqual(978, c.cc)
+
+    def test_parse_error(self):
+        self.assertRaises(ParseError, CommandAPDU.parse, bytearray.fromhex('06020322F0E0'))
 
     def test_parse_cursed_completion(self):
         c1 = CommandAPDU.parse(bytearray.fromhex('060f07F0F0F3626c6100'))
@@ -62,6 +66,23 @@ class TestAPDUSerializer(TestCase):
         self.assertEqual(bytearray.fromhex('06000498765441'), c.serialize())
 
 
+class TestInvalidAPDUs(TestCase):
+    def test_required_after_optional(self):
+        def construct_class():
+            class WrongPacket(CommandAPDU):
+                foo = ByteField(required=False)
+                bar = ByteField(required=True)
+
+        self.assertRaises(TypeError, construct_class)
+
+    def test_invalid_length(self):
+        def construct_class():
+            class WrongPacket(CommandAPDU):
+                foo = BCDIntField()
+
+        self.assertRaises(ValueError, construct_class)
+
+
 class DummyPacket(CommandAPDU):
     CMD_CLASS = 0xff
     CMD_INSTR = 0xaa
@@ -71,12 +92,58 @@ class DummyPacket(CommandAPDU):
         0x06: (BytesField(), 'raw_tlv', 'Unparsed TLV'),
     }
 
+
 class TestAPDUBitmaps(TestCase):
     def test_simple_create_serialize(self):
         c = Registration('777777', 0xa0, cc='0978')
         c.service_byte = 0x0a
 
         self.assertEqual(bytearray.fromhex('060008777777a00978030a'), c.serialize())
+
+    def test_as_dict(self):
+        c = Registration('777777', 0xa0)
+
+        self.assertEqual({'password': '777777', 'config_byte': 0xa0}, c.as_dict())
+
+    def test_nonexisting_attributes(self):
+        c = Registration('123456')
+
+        self.assertRaises(AttributeError, lambda: c.foobarbaz)
+        self.assertIsNone(c.cc)
+
+    def test_get(self):
+        c = Registration('123456')
+
+        self.assertEqual('123456', c.get('password'))
+        self.assertEqual(None, c.get('password1', None))
+
+    def test_del(self):
+        c = Registration(tlv=TLVContainer([]))
+
+        c.password = '123456'
+
+        self.assertEqual('123456', c.password)
+        self.assertIsNotNone(c.tlv)
+
+        del c.password
+        del c.tlv
+
+        self.assertIsNone(c.password)
+        self.assertIsNone(c.tlv)
+
+        c.password = '234567'
+
+        self.assertEqual('234567', c.password)
+
+    def test_unallowed_bitmaps(self):
+        c = DisplayText()
+
+        self.assertRaises(AttributeError, setattr, c, 'pump_nr', 1)
+
+    def test_invalid_length(self):
+        c = PrintLine(attribute=0x00, text='A'*65536)
+
+        self.assertRaises(ValueError, c.serialize)
 
     def test_parse_with_tlv(self):
         c = CommandAPDU.parse(bytearray.fromhex('06501712345606123f210c60065501aa0501bb1002abba110177'))
@@ -87,7 +154,7 @@ class TestAPDUBitmaps(TestCase):
         self.assertEqual(b'\xbb', c.tlv.x3f21.x60.x5)
         self.assertEqual(b'\xab\xba', c.tlv.x3f21.x10)
 
-    def test_overrid_bitmaps(self):
+    def test_override_bitmaps(self):
         c = CommandAPDU.parse(bytearray.fromhex('ffaa040602ffaa'))
 
         self.assertIsInstance(c.raw_tlv, bytes)

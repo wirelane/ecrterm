@@ -26,10 +26,10 @@ class Field:
         return v
 
     def parse(self, data: Union[bytes, List[int]]) -> Tuple[Any, bytes]:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no coverage
 
     def serialize(self, data: Any) -> bytes:
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no coverage
 
     def represent(self, data: Any) -> str:
         return self.REPR_FORMAT.format(data)
@@ -38,7 +38,7 @@ class Field:
         instance._values[self] = value
 
     def __delete__(self, instance):
-        instance._values[self] = None
+        del instance._values[self]
 
     def __get__(self, instance, objtype=None):
         return instance._values.get(self, None)

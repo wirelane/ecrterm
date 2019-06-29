@@ -116,8 +116,10 @@ class APDU(metaclass=FieldContainer):
 
         if bmp is not None:
             self._KNOWN_BITMAPS[bmp][0].__delete__(self)
+            del self._bitmaps[item]
+        else:
+            super().__delattr__(item)
 
-        super().__delattr__(item)
 
     def __setattr__(self, item, value):
         if item.startswith('_') or item == "FIELDS" or item in self.FIELDS:
@@ -155,7 +157,7 @@ class APDU(metaclass=FieldContainer):
 
     @classmethod
     def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
-        return True
+        return True  # pragma: no cover
 
     def parser_hook(self, data: Union[bytes, List[int]]) -> Union[bytes, List[int]]:
         return data
