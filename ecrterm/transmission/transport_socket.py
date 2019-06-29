@@ -103,7 +103,7 @@ class SocketTransport(Transport):
 
     def send(self, apdu, tries: int=0, no_wait: bool=False):
         """Send data."""
-        to_send = bytes(apdu.to_list())
+        to_send = apdu.serialize()
         self.slog(data=bs2hl(binstring=to_send), incoming=False)
         total_sent = 0
         msglen = len(to_send)
@@ -170,7 +170,7 @@ class SocketTransport(Transport):
         self.sock.settimeout(timeout)
         data = self._receive()
         self.slog(data=bs2hl(binstring=data), incoming=True)
-        return True, Packet.parse(blob=data)
+        return True, Packet.parse(data)
 
     def close(self):
         """Shutdown and close the connection."""
