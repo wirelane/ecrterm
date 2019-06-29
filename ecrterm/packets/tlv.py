@@ -75,7 +75,7 @@ class TLVItem:
             self.recalculate_length_field()
 
     def __repr__(self):
-        return "{}(tag=0x{:02X}, length={!r}, value={!r}".format(
+        return "{}(tag=0x{:02X}, length={!r}, value={!r})".format(
             self.__class__.__name__,
             self.tag,
             self.length,
