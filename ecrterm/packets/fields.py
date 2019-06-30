@@ -226,6 +226,11 @@ class BCDIntField(BCDField):
         v = str(int(v))
         return super().to_bytes(v.rjust(length*2, '0'), length)
 
+    def coerce(self, data: Any) -> int:
+        if isinstance(data, str):
+            return super().coerce(int(data.lstrip('0')))
+        return super().coerce(data)
+
     def validate(self, data: int) -> None:
         super().validate(str(int(data)))
 
@@ -258,3 +263,9 @@ class TLVField(Field):
 
     def serialize(self, data: TLVContainer) -> bytes:
         return data.serialize()
+
+    def __get__(self, instance, objtype=None) -> TLVContainer:
+        if not self in instance._values:
+            instance._values[self] = TLVContainer()
+            instance._values[self].pending = True
+        return super().__get__(instance, objtype)

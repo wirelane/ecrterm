@@ -1,7 +1,7 @@
 from enum import IntEnum
 import string
 
-from typing import Union, Tuple, TypeVar, Type, List
+from typing import Union, Tuple, TypeVar, Type, List, Dict, Any, Optional
 
 
 class TLVClass(IntEnum):
@@ -9,6 +9,13 @@ class TLVClass(IntEnum):
     APPLICATION = 1
     CONTEXT = 2
     PRIVATE = 3
+
+
+def _tag_is_constructed(tag):
+    t = tag
+    while t > 0xff:
+        t >>= 8
+    return bool(t & 0x20)
 
 
 def read_tlv_tag(data: bytes, pos: int) -> Tuple[int, int]:
@@ -71,6 +78,7 @@ class TLVItem:
         self.tag = tag
         self.length = length
         self.value = value
+        self.pending = False
         if self.value:
             self.recalculate_length_field()
 
@@ -114,10 +122,7 @@ class TLVItem:
 
             length, pos = read_tlv_length(data, pos)
 
-            t = tag
-            while t > 0xff:
-                t >>= 8
-            constructed = bool(t & 0x20)
+            constructed = _tag_is_constructed(tag)
 
             clazz = TLVConstructedItem if constructed else TLVItem
 
@@ -135,14 +140,25 @@ class TLVItem:
         return retval
 
     def serialize(self) -> bytes:
-        retval = bytearray(make_tlv_tag(self.tag))
-        retval.extend(make_tlv_length(self.length))
+        implicit = self.pending
 
+        data = bytearray()
         if self.constructed:
             for v in self.value:
-                retval.extend(v.serialize())
+                data.extend(v.serialize())
+            if len(data):
+                implicit = False
         else:
-            retval.extend(self.value)
+            data.extend(self.value)
+            if self.value is not None:
+                implicit = False
+
+        if implicit:
+            return b''
+
+        retval = bytearray(make_tlv_tag(self.tag))
+        retval.extend(make_tlv_length(len(data)))
+        retval.extend(data)
 
         return bytes(retval)
 
@@ -156,6 +172,38 @@ class TLVItem:
 
 
 class ContainerAccessMixin:
+    def __init__(self, value: Union[List[TLVItem], Dict[Union[str, int], Any]], **kwargs):
+        super().__init__()
+        self.value = []
+
+        self.set_value(value)
+
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
+    def set_value(self, value: Union[List[TLVItem], Dict[Union[str, int], Any]]):
+        if value is not None:
+            self.pending = False
+
+        if isinstance(value, list):
+            for item in value:
+                self.append_item(item)
+        elif isinstance(value, dict):
+            for k, v in value.items():
+                if isinstance(k, int):
+                    k = "x{:X}".format(k)
+                setattr(self, k, v)
+        elif value is None:
+            pass
+        else:
+            raise TypeError("Invalid type for value parameter")
+
+    def append_item(self, item: Union[TLVItem, Tuple[Union[str, int], Any]]):
+        if isinstance(item, TLVItem):
+            self.value.append(item)
+        else:
+            raise NotImplementedError
+
     def __getattr__(self, name: str):
         if name.startswith('x') and all(e in string.hexdigits for e in name[1:]):
             tag = int(name[1:], 16)
@@ -166,10 +214,42 @@ class ContainerAccessMixin:
                         return item
                     return item.value
 
-            raise KeyError("Tag {:02X} not found".format(tag))
+            # Generate an implicit empty tag
+            target = TLVConstructedItem(tag=tag, value=[]) if _tag_is_constructed(tag) else TLVItem(tag=tag)
+            target.pending = True
+            self.value.append(target)
+
+            return target
+
+    def __setattr__(self, name: Union[str, int], value: Any):
+        handle_tag = None
+
+        if name.startswith('x') and all(e in string.hexdigits for e in name[1:]):
+            handle_tag = int(name[1:], 16)
+        elif isinstance(name, int):
+            handle_tag = name
+
+        if handle_tag is None:
+            return super().__setattr__(name, value)
+
+        for item in self.value or []:
+            if item.tag == handle_tag:
+                target = item
+                target.value = value
+                break
+        else:
+            target = TLVConstructedItem(tag=handle_tag, value=[]) if _tag_is_constructed(handle_tag) else TLVItem(tag=handle_tag, value=value)
+            if target.constructed:
+                target.set_value(value)
+            self.value.append(target)
+
+        if value is not None:
+            target.pending = False
 
 
-class TLVConstructedItem(ContainerAccessMixin, TLVItem):
+
+
+class TLVConstructedItem(TLVItem, ContainerAccessMixin):
     def __repr__(self):
         return "{}(tag=0x{:02X}, length={!r}, value={!r})".format(
             self.__class__.__name__,
@@ -178,17 +258,21 @@ class TLVConstructedItem(ContainerAccessMixin, TLVItem):
             self.value
         )
 
+
+TLVContainerParam = Union[List[TLVItem], TLVContainerType, Dict[Union[str, int], Any]]
+
+
 class TLVContainer(ContainerAccessMixin):
-    def __new__(cls, value: Union[List[TLVItem], TLVContainerType], *args, **kwargs):
+    def __new__(cls, value: Optional[TLVContainerParam] = None, *args, **kwargs):
         if isinstance(value, TLVContainer):
             return value
         return super().__new__(cls)
 
-    def __init__(self, value: Union[List[TLVItem], TLVContainerType]):
+    def __init__(self, value: Optional[TLVContainerParam] = None, **kwargs):
         if isinstance(value, TLVContainer):
             # Was handled by __new__
             return
-        self.value = value
+        super().__init__(value, **kwargs)
 
     def __repr__(self):
         return "{}({!r})".format(self.__class__.__name__, self.value)
@@ -196,7 +280,6 @@ class TLVContainer(ContainerAccessMixin):
     def to_bytes(self) -> bytes:
         retval = bytearray()
         for v in self.value:
-            v.recalculate_length_field()
             retval.extend(v.serialize())
         return bytes(retval)
 

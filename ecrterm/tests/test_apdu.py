@@ -1,7 +1,7 @@
 from ecrterm.packets.apdu import CommandAPDU, ParseError
 from ecrterm.packets.tlv import TLVContainer
 from ecrterm.packets.fields import ByteField, BytesField, BCDIntField
-from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine
+from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine, Authorisation
 from unittest import TestCase, main
 
 
@@ -35,20 +35,20 @@ class TestAPDUParser(TestCase):
 
         c2 = CommandAPDU.parse(bytearray.fromhex('060f07F0F0F3626c6106'))
         self.assertEqual(0x06, c2.terminal_status)
-        self.assertIsNone(c2.tlv)
+        self.assertNotIn('tlv', c2.as_dict())
 
         c3 = CommandAPDU.parse(bytearray.fromhex('060f09F0F0F3626c61060600'))
         self.assertEqual(0x06, c3.terminal_status)
-        self.assertIsNotNone(c3.tlv)
+        self.assertIn('tlv', c3.as_dict())
 
         c4 = CommandAPDU.parse(bytearray.fromhex('060f0106'))
         self.assertEqual(0x06, c4.terminal_status)
         self.assertIsNone(c4.sw_version)
-        self.assertIsNone(c4.tlv)
+        self.assertNotIn('tlv', c4.as_dict())
 
         c5 = CommandAPDU.parse(bytearray.fromhex('060f03060600'))
         self.assertEqual(0x06, c5.terminal_status)
-        self.assertIsNotNone(c5.tlv)
+        self.assertIn('tlv', c5.as_dict())
 
 
 class TestAPDUSerializer(TestCase):
@@ -118,18 +118,18 @@ class TestAPDUBitmaps(TestCase):
         self.assertEqual(None, c.get('password1', None))
 
     def test_del(self):
-        c = Registration(tlv=TLVContainer([]))
+        c = Registration(service_byte=0x1)
 
         c.password = '123456'
 
         self.assertEqual('123456', c.password)
-        self.assertIsNotNone(c.tlv)
+        self.assertIsNotNone(c.service_byte)
 
         del c.password
-        del c.tlv
+        del c.service_byte
 
         self.assertIsNone(c.password)
-        self.assertIsNone(c.tlv)
+        self.assertIsNone(c.service_byte)
 
         c.password = '234567'
 
@@ -153,6 +153,15 @@ class TestAPDUBitmaps(TestCase):
         self.assertEqual(b'\xaa', c.tlv.x3f21.x60.x55)
         self.assertEqual(b'\xbb', c.tlv.x3f21.x60.x5)
         self.assertEqual(b'\xab\xba', c.tlv.x3f21.x10)
+
+    def test_create_tlv(self):
+        c1 = Authorisation(tlv={0xf2: {0xc1: b'\x12\x23'}})
+
+        self.assertEqual(bytearray.fromhex('0601080606f204c1021223'), c1.serialize())
+
+        c2 = Authorisation()
+        c2.tlv.xf2.xc1 = b'\x12\x23'
+        self.assertEqual(bytearray.fromhex('0601080606f204c1021223'), c2.serialize())
 
     def test_override_bitmaps(self):
         c = CommandAPDU.parse(bytearray.fromhex('ffaa040602ffaa'))

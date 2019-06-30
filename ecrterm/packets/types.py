@@ -1,4 +1,9 @@
-from enum import IntFlag, IntEnum
+from enum import IntFlag, IntEnum, Enum
+
+
+class IntEnumRepr(IntEnum):
+    def __repr__(self):
+        return "{}.{}".format(self.__class__.__name__, self.name)
 
 
 class ConfigByte(IntFlag):
@@ -19,5 +24,6 @@ class ServiceByte(IntFlag):
 
     NONE = DEFAULT = 0x00
 
-class CurrencyCode(IntEnum):
+
+class CurrencyCode(IntEnumRepr):
     EUR = 978

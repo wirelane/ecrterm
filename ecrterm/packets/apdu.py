@@ -120,7 +120,6 @@ class APDU(metaclass=FieldContainer):
         else:
             super().__delattr__(item)
 
-
     def __setattr__(self, item, value):
         if item.startswith('_') or item == "FIELDS" or item in self.FIELDS:
             object.__setattr__(self, item, value)
