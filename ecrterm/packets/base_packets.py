@@ -99,7 +99,7 @@ class Registration(CommandWithPassword):
     wait_for_completion = True
 
     config_byte = FlagByteField(data_type=ConfigByte)
-    cc = BCDIntField(length=2, required=False)
+    cc = BCDIntField(data_type=CurrencyCode, length=2, required=False)
 
 
 class Kassenbericht(CommandWithPassword):

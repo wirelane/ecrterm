@@ -42,7 +42,7 @@ BITMAPS = {
     0x3C: (
         LLLVARField(), 'additional', 'additional-data/additional-text'),
     0x3D: (PasswordField(), 'password', 'Password'),
-    0x49: (BCDIntField(length=2), 'currency_code', 'currency code'),
+    0x49: (BCDIntField(data_type=CurrencyCode, length=2), 'currency_code', 'currency code'),
     0x60: (LLLVARField(), 'totals', 'individual totals'),
     0x87: (BCDField(length=2), 'receipt', 'receipt-number'),
     0x88: (BCDField(length=3), 'turnover', 'turnover record number'),

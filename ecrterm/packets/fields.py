@@ -223,8 +223,11 @@ class BCDIntField(BCDField):
 
     def to_bytes(self, v: int, length: Optional[int] = None) -> bytes:
         length = length if length is not None else (self.length if self.length is not None else self.LENGTH)
-        v = str(v)
+        v = str(int(v))
         return super().to_bytes(v.rjust(length*2, '0'), length)
+
+    def validate(self, data: int) -> None:
+        super().validate(str(int(data)))
 
 
 class BEIntField(IntField, FixedLengthField):

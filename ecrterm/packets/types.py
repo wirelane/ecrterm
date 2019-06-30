@@ -1,4 +1,4 @@
-from enum import IntFlag
+from enum import IntFlag, IntEnum
 
 
 class ConfigByte(IntFlag):
@@ -18,3 +18,6 @@ class ServiceByte(IntFlag):
     USE_CAPITALS = 0x02
 
     NONE = DEFAULT = 0x00
+
+class CurrencyCode(IntEnum):
+    EUR = 978
