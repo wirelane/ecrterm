@@ -13,6 +13,7 @@ class Endianness(Enum):
 
 class Field:
     REPR_FORMAT = "{!r}"
+    DATA_TYPE = None
 
     def __init__(self, required=True, ignore_parse_error=False, *args, **kwargs):
         self.required = required
@@ -31,11 +32,20 @@ class Field:
     def serialize(self, data: Any) -> bytes:
         raise NotImplementedError  # pragma: no coverage
 
+    def coerce(self, data: Any) -> Any:
+        if self.DATA_TYPE:
+            return self.DATA_TYPE(data)
+        return data
+
+    def validate(self, data: Any) -> None:
+        pass  # pragma: no coverage
+
     def represent(self, data: Any) -> str:
         return self.REPR_FORMAT.format(data)
 
-    def __set__(self, instance, value):
-        instance._values[self] = value
+    def __set__(self, instance, value: Any):
+        v = self.coerce(value)
+        instance._values[self] = v
 
     def __delete__(self, instance):
         del instance._values[self]
@@ -59,7 +69,12 @@ class FixedLengthField(Field):
         return self.from_bytes(v), data
 
     def serialize(self, data: Any) -> bytes:
+        self.validate(data)
         return self.to_bytes(data, self.length)
+
+    def validate(self, data: Any) -> None:
+        if len(self.to_bytes(data)) != self.length:
+            raise ValueError("Field must be exactly {} bytes long".format(self.length))
 
 
 class LVARField(Field):
@@ -100,6 +115,7 @@ class LLLVARField(LVARField):
 class IntField(Field):
     LENGTH = None
     ENDIAN = Endianness.BIG_ENDIAN
+    DATA_TYPE = int
 
     def to_bytes(self, v: int, length: Optional[int] = None) -> bytes:
         length = length if length is not None else (self.length if self.length is not None else self.LENGTH)
@@ -113,6 +129,9 @@ class IntField(Field):
                 result[length - 1 - i] = n
             else:
                 result[i] = n
+
+        if v:
+            raise ValueError("Value too large to serialize in {} bytes".format(length))
 
         return bytes(result)
 
@@ -128,6 +147,8 @@ class IntField(Field):
 
 
 class BytesField(Field):
+    DATA_TYPE = bytes
+
     def parse(self, data: Union[bytes, List[int]]) -> Tuple[str, bytes]:
         return self.from_bytes(data), b''
 
@@ -136,6 +157,8 @@ class BytesField(Field):
 
 
 class StringField(BytesField):
+    DATA_TYPE = str
+
     def from_bytes(self, v: Union[bytes, List[int]]) -> str:
         return bytes(v).decode()
 
@@ -153,6 +176,8 @@ class ByteField(IntField, FixedLengthField):
 
 
 class BCDField(FixedLengthField):
+    DATA_TYPE = str
+
     def from_bytes(self, v: Union[bytes, List[int]]) -> str:
         return bytearray(v).hex()
 
@@ -169,12 +194,19 @@ class BCDField(FixedLengthField):
 
         return bytes(bytearray.fromhex(v))
 
+    def validate(self, data: str) -> None:
+        super().validate(data)
+        if not str(data).isdigit():
+            raise ValueError("BCD field contents can only be numeric")
+
 
 class PasswordField(BCDField):
     LENGTH = 3
 
 
 class BCDIntField(BCDField):
+    DATA_TYPE = int
+
     def from_bytes(self, v: Union[bytes, List[int]]) -> int:
         v = super().from_bytes(v)
         return int(v, 10)
@@ -198,6 +230,8 @@ class LLLStringField(LLLVARField, StringField):
 
 
 class TLVField(Field):
+    DATA_TYPE = TLVContainer
+
     def from_bytes(self, v: Union[bytes, List[int]]) -> TLVContainer:
         return TLVContainer.from_bytes(bytes(v))
 

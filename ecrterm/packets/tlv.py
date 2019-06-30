@@ -1,7 +1,7 @@
 from enum import IntEnum
 import string
 
-from typing import Tuple, TypeVar, Type, List
+from typing import Union, Tuple, TypeVar, Type, List
 
 
 class TLVClass(IntEnum):
@@ -178,9 +178,16 @@ class TLVConstructedItem(ContainerAccessMixin, TLVItem):
             self.value
         )
 
-
 class TLVContainer(ContainerAccessMixin):
-    def __init__(self, value: List[TLVItem]):
+    def __new__(cls, value: Union[List[TLVItem], TLVContainerType], *args, **kwargs):
+        if isinstance(value, TLVContainer):
+            return value
+        return super().__new__(cls)
+
+    def __init__(self, value: Union[List[TLVItem], TLVContainerType]):
+        if isinstance(value, TLVContainer):
+            # Was handled by __new__
+            return
         self.value = value
 
     def __repr__(self):

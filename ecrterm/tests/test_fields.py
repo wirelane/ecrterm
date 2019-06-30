@@ -120,6 +120,23 @@ class TestFields(TestCase):
 
         # FIXME With more tags
 
+    def test_coercion(self):
+        self.assertIsInstance(TLVField().coerce([]), TLVContainer)
+        self.assertIsInstance(TLVField().coerce(TLVContainer([])).value, list)
+        self.assertIsInstance(IntField().coerce('3'), int)
+
+
+    def test_validator(self):
+        bf = ByteField()
+
+        self.assertRaises(ValueError, bf.validate, 256)
+        self.assertRaises(ValueError, bf.serialize, 256)
+
+        pf = PasswordField()
+
+        self.assertRaises(ValueError, pf.validate, '123')
+        self.assertRaises(ValueError, pf.validate, '12345678')
+
 
 if __name__ == '__main__':
     main()
