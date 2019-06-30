@@ -1,9 +1,10 @@
 from .fields import *
+from .types import *
 
 BITMAPS = {
     0x01: (ByteField(), 'timeout', 'binary time-out'),
     0x02: (ByteField(), 'max_status_infos', 'binary max.status infos'),
-    0x03: (ByteField(), 'service_byte', 'binary service-byte'),
+    0x03: (FlagByteField(data_type=ServiceByte), 'service_byte', 'binary service-byte'),
     0x04: (BCDIntField(length=6), 'amount', 'Amount'),
     0x05: (ByteField(), 'pump_nr', 'binary pump-Nr.'),
     0x06: (TLVField(), 'tlv', 'TLV'),

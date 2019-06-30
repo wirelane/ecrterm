@@ -2,6 +2,7 @@ import datetime
 
 from .apdu import CommandAPDU
 from .fields import *
+from .types import *
 
 
 class Packet(CommandAPDU):
@@ -97,62 +98,8 @@ class Registration(CommandWithPassword):
     CMD_INSTR = 0x00
     wait_for_completion = True
 
-    config_byte = ByteField()
+    config_byte = FlagByteField(data_type=ConfigByte)
     cc = BCDIntField(length=2, required=False)
-
-    @classmethod
-    def generate_config(
-        cls,
-        ecr_prints_receipt=True,
-        ecr_prints_admin_receipt=True,  # should be true too.
-        ecr_intermediate_status=True,  # This is mandatory !!!!!
-        ecr_controls_payment=True,  # amount input possible if False.
-        ecr_controls_admin=True,  # admin menu on PT?
-        ecr_use_print_lines=True,
-        initial=0x0
-    ):
-        """
-        Generates a config bbititmask for your register function.
-        Can only set bits in tutorials 0xba (0b10111010) is used (all
-        but admin receipt)
-        """
-        ret = initial
-        # 0000 0001: RFU
-        # 0000 0010
-        if ecr_prints_receipt:
-            ret |= 0x2
-        # 0000 0100
-        if ecr_prints_admin_receipt:
-            ret |= 0x4
-        if ecr_intermediate_status:
-            ret |= 0x8
-        else:
-            print(
-                'Note: intermediate status not requested, but mandatory in '
-                'CardComplete Terminals')
-        if ecr_controls_payment:
-            ret |= 0x10
-        # 0010 0000
-        if ecr_controls_admin:
-            ret |= 0x20
-        # 0100 0000 : RFU
-        if ecr_use_print_lines:
-            ret |= 0x80
-        return ret & 0xBE  # make sure, we do not use RFUs
-
-    @classmethod
-    def generate_service(
-            cls, do_not_assign_service_menu_pt=False, use_capitals=False,
-            initial=0x0):
-        ret = initial
-        # 0000 0001:
-        if do_not_assign_service_menu_pt:
-            ret |= 0x1
-        # 0000 0010
-        if use_capitals:
-            ret |= 0x2
-        # all other RFU.
-        return ret & 0x3
 
 
 class Kassenbericht(CommandWithPassword):

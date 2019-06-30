@@ -4,7 +4,7 @@
 Example script to demonstrate a payment process.
 """
 from ecrterm.ecr import ECR, ecr_log
-from ecrterm.packets.base_packets import Registration
+from ecrterm.packets.types import ConfigByte
 
 
 def printer(lines_of_text):
@@ -18,11 +18,7 @@ if __name__ == '__main__':
     e.transport.slog = ecr_log
     print(e.detect_pt())
     if e.detect_pt():
-        e.register(config_byte=Registration.generate_config(
-            ecr_prints_receipt=False,
-            ecr_prints_admin_receipt=False,
-            ecr_controls_admin=True,
-            ecr_controls_payment=True))
+        e.register(config_byte=ConfigByte.DEFAULT)
 
         e.wait_for_status()
         status = e.status()

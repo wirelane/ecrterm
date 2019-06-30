@@ -18,6 +18,7 @@ from ecrterm.packets.base_packets import (
     Registration, ResetTerminal, StatusEnquiry, StatusInformation)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.packets.tlv import TLVContainer
+from ecrterm.packets.types import ConfigByte
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
 from ecrterm.transmission.transport_socket import SocketTransport
@@ -201,8 +202,7 @@ class ECR(object):
         ret = self.transmit(
             Registration(
                 password=self.password,
-                config_byte=Registration.generate_config(
-                    ecr_controls_admin=False),))
+                config_byte=ConfigByte.DEFAULT & ~ConfigByte.ECR_CONTROLS_ADMIN))
         if ret == TRANSMIT_OK:
             self._state_registered = True
         return ret

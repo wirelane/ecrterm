@@ -15,9 +15,10 @@ class Field:
     REPR_FORMAT = "{!r}"
     DATA_TYPE = None
 
-    def __init__(self, required=True, ignore_parse_error=False, *args, **kwargs):
+    def __init__(self, required=True, ignore_parse_error=False, data_type=None, *args, **kwargs):
         self.required = required
         self.ignore_parse_error = ignore_parse_error
+        self.data_type = data_type or self.DATA_TYPE
         super().__init__(*args, **kwargs)
 
     def from_bytes(self, v: Union[bytes, List[int]]) -> Any:
@@ -33,8 +34,8 @@ class Field:
         raise NotImplementedError  # pragma: no coverage
 
     def coerce(self, data: Any) -> Any:
-        if self.DATA_TYPE:
-            return self.DATA_TYPE(data)
+        if self.data_type:
+            return self.data_type(data)
         return data
 
     def validate(self, data: Any) -> None:
@@ -173,6 +174,15 @@ class StringField(BytesField):
 class ByteField(IntField, FixedLengthField):
     LENGTH = 1
     REPR_FORMAT = "0x{:02X}"
+
+
+class FlagByteField(IntField, FixedLengthField):
+    LENGTH = 1
+
+    def __init__(self, *args, **kwargs):
+        if not 'data_type' in kwargs:
+            raise TypeError("Must specify data_type")
+        super().__init__(*args, **kwargs)
 
 
 class BCDField(FixedLengthField):
