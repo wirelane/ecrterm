@@ -3,10 +3,13 @@ Incoming Packets should be always parsable.
 this test tries to look at the parser in detail.
 """
 from logging import info
-from unittest import TestCase, main
+from unittest import TestCase, main, expectedFailure
 
 from ecrterm.ecr import parse_represented_data
 from ecrterm.packets.base_packets import Completion, Packet
+from ecrterm.packets.types import CharacterSet
+from ecrterm.packets.text_encoding import ZVT_7BIT_CHARACTER_SET
+from ecrterm.packets.context import enter_context
 
 
 class TestParsingMechanisms(TestCase):
@@ -36,6 +39,8 @@ class TestParsingMechanisms(TestCase):
         '52 15 02 49 54 40 02 C0 00 1F 04 02 F1 00 1F 05 01 00',
         '06 0F 11 19 00 29 52 00 12 33 49 09 78 06 05 27 03 14 01 FF',
         '06 01 0E 02 01 04 00 00 00 00 10 00 19 44 49 09 78',
+        '04 FF 1E 0A 01 06 1A 24 18 07 16 42 69 74 74 65 20 4B 61 72 74 '
+        '65 20 65 69 6E 73 74 65 63 6B 65 6E',
         '04 FF 1E 0A 01 06 1A 24 18 07 16 42 69 74 74 65 20 4B 61 72 74 '
         '65 20 65 69 6E 73 74 65 63 6B 65 6E',
         '040fa12700040000000000014909780c1223060d062922f0f8474843eeeeee77438700023b38383931353000000b000732196029420030360e18018a0a8c038bf0f556495341002a3435353630303030303539392020203cf0f7f341532d544944203d2031334630303031330d41532d50726f632d436f6465203d203230203930332030300d436170742e2d5265662e3d20303030300d41494435393a20383039323538',
@@ -70,6 +75,43 @@ class TestParsingMechanisms(TestCase):
                              "Serialized {} message doesn't match original message (case {})".format(
                                  parsed.__class__.__name__,
                                  idx))
+
+    @expectedFailure  ## FIXME after tlv types
+    def test_text_encoding_tlv(self):
+        packet = '04ff140a010610240e070c5465737420842094208120e1'
+        p = parse_represented_data(packet)
+
+        self.assertEqual('Test ä ö ü ß', p.tlv.x24.x07)
+
+    def test_text_encoding_default(self):
+        packet = '06d10d005465737420842094208120e1'
+        p = parse_represented_data(packet)
+
+        self.assertEqual('Test ä ö ü ß', p.text)
+
+    def test_text_encoding_utf8(self):
+        packet = '06d121005465737420c3a420c3b620c3bc20c39f'
+
+        with enter_context(character_set=CharacterSet.UTF8):
+            p = parse_represented_data(packet)
+
+        self.assertEqual('Test ä ö ü ß', p.text)
+
+    def test_text_encoding_latin1(self):
+        packet = '06d10d005465737420e420f620fc20df'
+
+        with enter_context(character_set=CharacterSet.LATIN_1):
+            p = parse_represented_data(packet)
+
+        self.assertEqual('Test ä ö ü ß', p.text)
+
+    def test_text_encoding_zvt_7bit(self):
+        packet = '06d10d0054657374207b207c207d207e'
+
+        with enter_context(character_set=ZVT_7BIT_CHARACTER_SET):
+            p = parse_represented_data(packet)
+
+        self.assertEqual('Test ä ö ü ß', p.text)
 
 
 if __name__ == '__main__':

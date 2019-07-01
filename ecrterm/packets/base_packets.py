@@ -3,6 +3,7 @@ import datetime
 from .apdu import CommandAPDU
 from .fields import *
 from .types import *
+from .text_encoding import ZVT_7BIT_CHARACTER_SET
 
 
 class Packet(CommandAPDU):
@@ -184,7 +185,7 @@ class Completion(Packet):
     # Setting ignore_parse_error to True will suppress that parse error and continue with
     # the rest of the packet.
 
-    sw_version = LLLStringField(required=False, ignore_parse_error=True)
+    sw_version = LLLStringField(required=False, ignore_parse_error=True, character_set=ZVT_7BIT_CHARACTER_SET)
     terminal_status = ByteField(required=False, ignore_parse_error=True)
 
     ALLOWED_BITMAPS = ['tlv', 'status_byte', 'tid', 'currency_code']

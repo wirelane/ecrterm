@@ -2,6 +2,9 @@ from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
 from .tlv import TLVContainer
+from .types import CharacterSet
+from .context import CurrentContext
+from .text_encoding import encode, decode
 
 class ParseError(Exception):
     pass
@@ -160,15 +163,23 @@ class BytesField(Field):
 class StringField(BytesField):
     DATA_TYPE = str
 
+    def __init__(self, *args, **kwargs):
+        self._character_set = kwargs.pop('character_set', None)
+        super().__init__(*args, **kwargs)
+
     def from_bytes(self, v: Union[bytes, List[int]]) -> str:
-        return bytes(v).decode()
+        character_set = self._character_set if self._character_set is not None else CurrentContext.get('character_set', CharacterSet.DEFAULT)
+        return decode(bytes(v), character_set)
 
     def to_bytes(self, v: str, length: int = None) -> bytes:
+        character_set = self._character_set if self._character_set is not None else CurrentContext.get('character_set', CharacterSet.DEFAULT)
+        retval = encode(v, character_set)
+
         if length:
-            if len(v) != length:
+            if len(retval) != length:
                 raise ValueError("String length doesn't match fixed string length")
 
-        return bytes(v.encode())
+        return retval
 
 
 class ByteField(IntField, FixedLengthField):
