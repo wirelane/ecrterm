@@ -269,3 +269,6 @@ class TLVField(Field):
             instance._values[self] = TLVContainer()
             instance._values[self].pending = True
         return super().__get__(instance, objtype)
+
+
+# FIXME text encoding

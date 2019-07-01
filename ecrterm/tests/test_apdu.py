@@ -170,8 +170,6 @@ class TestAPDUBitmaps(TestCase):
         self.assertEqual(b'\x02\xff\xaa', c.raw_tlv)
 
 
-    # FIXME Create empty TLV
-    # FIXME Create TLV on access
     # FIXME TLV names
 
 
