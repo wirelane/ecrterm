@@ -1,6 +1,8 @@
 import string
 from enum import IntEnum
-from typing import Union, Tuple, TypeVar, Type, List, Dict, Any, Optional
+from typing import Union, Tuple, TypeVar, Type, List, Dict, Any
+from .context import CurrentContext
+from .types import VendorQuirks
 
 
 class TLVClass(IntEnum):
@@ -125,7 +127,13 @@ class TLVItem:
             t = value
             while t > 0xff:
                 t >>= 8
-            self._constructed = bool(t & 0x20)
+            if VendorQuirks.FEIG_CVEND in CurrentContext.get('vendor_quirks', set()):
+                if 0xff00 <= value <= 0xffff:
+                    self._constructed = False
+                else:
+                    self._constructed = bool(t & 0x20)
+            else:
+                self._constructed = bool(t & 0x20)
             self._class = TLVClass(t >> 6)
     # </editor-fold>
 
@@ -151,8 +159,18 @@ class TLVItem:
         if value is not None:
             self._implicit = False
         if self._constructed:
-            if isinstance(value, list):
-                self._value = value
+            if isinstance(value, (tuple,list)):
+                self._value = []
+                for item in value:
+                    if isinstance(item, TLVItem):
+                        self._value.append(item)
+                    elif isinstance(item, (tuple, list)) and len(item) == 2:
+                        k, v = item
+                        if isinstance(k, int):
+                            k = "x{:X}".format(k)
+                        setattr(self, k, v)
+                    else:
+                        raise ValueError("Cannot set value {}".format(value))
             elif isinstance(value, dict):
                 self._value = []
                 for k, v in value.items():

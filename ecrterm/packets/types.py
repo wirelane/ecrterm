@@ -1,4 +1,4 @@
-from enum import IntFlag, IntEnum
+from enum import IntFlag, IntEnum, Enum, auto
 
 
 class IntEnumRepr(IntEnum):
@@ -49,3 +49,7 @@ class CharacterSet(IntEnum):
     ISO_8859_16 = LATIN_16 = 16
     UTF8 = 0xfe
     ZVT_8BIT = CP437 = DEFAULT = 0xff
+
+
+class VendorQuirks(Enum):
+    FEIG_CVEND = auto()
