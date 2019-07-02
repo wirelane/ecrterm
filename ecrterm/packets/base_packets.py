@@ -456,3 +456,9 @@ class StatusEnquiry(CommandWithPassword):
     wait_for_completion = True
 
 
+class ChangePTConfiguration(Packet):
+    CMD_CLASS = 0x08
+    CMD_INSTR = 0x13
+    wait_for_completion = True
+
+    ALLOWED_BITMAPS = ['tlv']
