@@ -29,6 +29,11 @@ class Context(dict):
             self._deleted.remove(key)
         super().__setitem__(key, value)
 
+    def get(self, key, default=None):
+        with contextlib.suppress(KeyError):
+            return self[key]
+        return default
+
 
 def _get_current_context():
     if not hasattr(_localdata, 'contexts'):
