@@ -232,7 +232,7 @@ class TLVItem:
         if self._tag is None:
             tagstr = ""
         else:
-            tagstr = "0x{:02X}, ".format(self._tag)
+            tagstr = "tag_=0x{:02X}, ".format(self._tag)
         return "{}({}value_={!r})".format(
             self.__class__.__name__,
             tagstr,
