@@ -1,5 +1,5 @@
 from ecrterm.packets.apdu import CommandAPDU, ParseError
-from ecrterm.packets.tlv import TLVContainer
+from ecrterm.packets.tlv import TLVItem
 from ecrterm.packets.fields import ByteField, BytesField, BCDIntField
 from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine, Authorisation
 from unittest import TestCase, main

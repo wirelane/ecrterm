@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
-from .tlv import TLVContainer
+from .tlv import TLVItem
 from .types import CharacterSet
 from .context import CurrentContext
 from .text_encoding import encode, decode
@@ -259,25 +259,25 @@ class LLLStringField(LLLVARField, StringField):
 
 
 class TLVField(Field):
-    DATA_TYPE = TLVContainer
+    DATA_TYPE = TLVItem
 
-    def from_bytes(self, v: Union[bytes, List[int]]) -> TLVContainer:
-        return TLVContainer.from_bytes(bytes(v))
+    def from_bytes(self, v: Union[bytes, List[int]]) -> TLVItem:
+        return TLVItem(bytes(v))
 
-    def to_bytes(self, v: TLVContainer, length: Optional[int] = None) -> bytes:
+    def to_bytes(self, v: TLVItem, length: Optional[int] = None) -> bytes:
         if length is not None:
             raise ValueError("Must not give length for TLV container")
-        return v.to_bytes()
+        return v.serialize()
 
-    def parse(self, data: Union[bytes, List[int]]) -> Tuple[TLVContainer, bytes]:
-        return TLVContainer.parse(data)
+    def parse(self, data: Union[bytes, List[int]]) -> Tuple[TLVItem, bytes]:
+        return TLVItem.parse(data, empty_tag=True)
 
-    def serialize(self, data: TLVContainer) -> bytes:
+    def serialize(self, data: TLVItem) -> bytes:
         return data.serialize()
 
-    def __get__(self, instance, objtype=None) -> TLVContainer:
+    def __get__(self, instance, objtype=None) -> TLVItem:
         if not self in instance._values:
-            instance._values[self] = TLVContainer()
+            instance._values[self] = TLVItem()
             instance._values[self].pending = True
         return super().__get__(instance, objtype)
 

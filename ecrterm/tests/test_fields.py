@@ -1,7 +1,7 @@
 from unittest import TestCase, main
 
 from ecrterm.packets.fields import *
-from ecrterm.packets.tlv import TLVContainer
+from ecrterm.packets.tlv import TLVItem
 
 
 class TestFields(TestCase):
@@ -113,16 +113,16 @@ class TestFields(TestCase):
         tf = TLVField()
 
         c, d = tf.parse(b'\x00')
-        self.assertIsInstance(c, TLVContainer)
+        self.assertIsInstance(c, TLVItem)
         self.assertEqual(d, b'')
 
-        self.assertEqual(tf.serialize(TLVContainer(value=[])), b'\x00')
+        self.assertEqual(tf.serialize(TLVItem(tag_=None, value_=[])), b'\x00')
 
         # FIXME With more tags
 
     def test_coercion(self):
-        self.assertIsInstance(TLVField().coerce([]), TLVContainer)
-        self.assertIsInstance(TLVField().coerce(TLVContainer([])).value, list)
+        self.assertIsInstance(TLVField().coerce([]), TLVItem)
+        self.assertIsInstance(TLVField().coerce(TLVItem(tag_=None, value_=[])).value_, list)
         self.assertIsInstance(IntField().coerce('3'), int)
 
 
