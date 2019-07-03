@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
-from .tlv import TLVItem
-from .types import CharacterSet
+from .tlv import TLVItem, TLVDictionary
+from .types import CharacterSet, VendorQuirks
 from .context import CurrentContext
 from .text_encoding import encode, decode
 
@@ -18,10 +18,11 @@ class Field:
     REPR_FORMAT = "{!r}"
     DATA_TYPE = None
 
-    def __init__(self, required=True, ignore_parse_error=False, data_type=None, *args, **kwargs):
+    def __init__(self, required=True, ignore_parse_error=False, data_type=None, name=None, *args, **kwargs):
         self.required = required
         self.ignore_parse_error = ignore_parse_error
         self.data_type = data_type or self.DATA_TYPE
+        self.name = name  # Only used in TLV
         super().__init__(*args, **kwargs)
 
     def from_bytes(self, v: Union[bytes, List[int]]) -> Any:
@@ -196,11 +197,29 @@ class FlagByteField(IntField, FixedLengthField):
         super().__init__(*args, **kwargs)
 
 
-class BCDField(FixedLengthField):
+class BCDVariableLengthField(Field):
     DATA_TYPE = str
 
     def from_bytes(self, v: Union[bytes, List[int]]) -> str:
         return bytearray(v).hex()
+
+    def to_bytes(self, v: str, length: Optional[int] = None) -> bytes:
+        if not v.isdigit():
+            raise ValueError("BCD field contents can only be numeric")
+
+        if len(v) % 2 != 0:
+            v = '0'+v
+
+        return bytes(bytearray.fromhex(v))
+
+    def validate(self, data: str) -> None:
+        super().validate(data)
+        if not str(data).isdigit():
+            raise ValueError("BCD field contents can only be numeric")
+
+
+class BCDField(BCDVariableLengthField, FixedLengthField):
+    DATA_TYPE = str
 
     def to_bytes(self, v: str, length: Optional[int] = None) -> bytes:
         length = length if length is not None else (self.length if self.length is not None else self.LENGTH)
@@ -210,15 +229,7 @@ class BCDField(FixedLengthField):
         if length != len(v) / 2:
             raise ValueError("Value length doesn't match field length")
 
-        if not v.isdigit():
-            raise ValueError("BCD field contents can only be numeric")
-
-        return bytes(bytearray.fromhex(v))
-
-    def validate(self, data: str) -> None:
-        super().validate(data)
-        if not str(data).isdigit():
-            raise ValueError("BCD field contents can only be numeric")
+        return super().to_bytes(v, length)
 
 
 class PasswordField(BCDField):
@@ -270,7 +281,7 @@ class TLVField(Field):
         return v.serialize()
 
     def parse(self, data: Union[bytes, List[int]]) -> Tuple[TLVItem, bytes]:
-        return TLVItem.parse(data, empty_tag=True)
+        return TLVItem.parse(data, empty_tag=True, dictionary='feig_zvt' if VendorQuirks.FEIG_CVEND in CurrentContext.get('vendor_quirks', set()) else 'zvt')
 
     def serialize(self, data: TLVItem) -> bytes:
         return data.serialize()
@@ -282,4 +293,22 @@ class TLVField(Field):
         return super().__get__(instance, objtype)
 
 
-# FIXME text encoding
+TLVDictionary.register(
+    'zvt', {
+        None: BytesField(),
+        0x07: StringField(name="text_line"),
+        0x14: FlagByteField(name="character_set", data_type=CharacterSet),  # FIXME
+        0x15: StringField(name="language_code", character_set=CharacterSet.ASCII_7BIT),
+        0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.ZVT_8BIT),
+        0x1F40: StringField(name="device_name", character_set=CharacterSet.ASCII_7BIT),
+        0x1F41: StringField(name="software_version", character_set=CharacterSet.ASCII_7BIT),
+        0x1F42: BCDVariableLengthField(name="serial_number"),
+    }
+)
+
+TLVDictionary.child(
+    'feig_zvt', 'zvt', {
+        0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.UTF8),
+        0xFF40: PasswordField(name="service_password"),
+    }
+)

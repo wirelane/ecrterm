@@ -76,7 +76,6 @@ class TestParsingMechanisms(TestCase):
                                  parsed.__class__.__name__,
                                  idx))
 
-    @expectedFailure  ## FIXME after tlv types
     def test_text_encoding_tlv(self):
         packet = '04ff140a010610240e070c5465737420842094208120e1'
         p = parse_represented_data(packet)
