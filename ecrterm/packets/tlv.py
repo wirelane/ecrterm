@@ -242,22 +242,32 @@ class TLV:
             tagstr = ""
         else:
             tagstr = "tag_=0x{:02X}, ".format(self._tag)
-        if self._constructed and False:  # FIXME This code path is unfinished
+        if self._constructed:
             items = list(self.items_)
-            if len(items) != len({i[0] for i in items}):
-                valstr = "{!r}".format(self.value_)
+            if len(items) != len({e[0] for e in items}):
+                valstr = "value_={!r}".format(self.value_)
             else:
-                valstr = "{" + ", ".join(
-                    "{!r}: {!r}".format(k, v)
+                for i, (k, v) in enumerate(items):
+                    if isinstance(v, list) and all(isinstance(e, TLV) for e in v):
+                        if len(v) == len({e.tag_ for e in v}):
+                            items[i] = (k, {e.name_: e.value_ for e in v})
+                valstr = ", ".join(
+                    "{}={!r}".format(k, v)
                     for (k, v) in items
-                ) + "}"
+                )
         else:
-            valstr = "{!r}".format(self.value_)
-        return "{}({}value_={})".format(
+            valstr = "value_={!r}".format(self.value_)
+        return "{}({}{})".format(
             self.__class__.__name__,
             tagstr,
             valstr
         )
+
+    @property
+    def name_(self):
+        if self._type and self._type.name:
+            return self._type.name
+        return "x{:X}".format(self.tag_)
 
     @property
     def items_(self):
@@ -265,10 +275,7 @@ class TLV:
             raise TypeError("Cannot access items_ of primitive TLV")
         retval = []
         for v in self.value_:
-            if v._type and v._type.name:
-                retval.append( (v._type.name, v.value_) )
-            else:
-                retval.append( ("x{:X}".format(v.tag_), v.value_) )
+            retval.append( (v.name_, v.value_) )
         return retval
 
     def _serialize_value(self) -> bytes:

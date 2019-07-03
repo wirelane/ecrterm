@@ -1,4 +1,4 @@
-from unittest import TestCase, main
+from unittest import TestCase, main, expectedFailure
 
 from ecrterm.packets.tlv import *
 
@@ -87,3 +87,14 @@ class TestTLV(TestCase):
 
         self.assertIs(a, b)
 
+
+class TestTLVRepr(TestCase):
+    def setUp(self) -> None:
+        self.coll_1, dummy_ = TLV.parse(b'\x06\x01\x01\xaa\x02\x01\xbb', empty_tag=True)
+        self.par_1, dummy_ = TLV.parse(b'\x20\x06\x21\x04\x03\x02\xab\xcd')
+
+    def test_naked_repr(self):
+        self.assertEqual('TLV(x1=b\'\\xaa\', x2=b\'\\xbb\')', repr(self.coll_1))
+
+    def test_nested_repr(self):
+        self.assertEqual('TLV(tag_=0x20, x21={\'x3\': b\'\\xab\\xcd\'})', repr(self.par_1))
