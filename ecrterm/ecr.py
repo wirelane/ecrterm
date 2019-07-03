@@ -17,7 +17,7 @@ from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
     Registration, ResetTerminal, StatusEnquiry, StatusInformation)
 from ecrterm.transmission._transmission import Transmission
-from ecrterm.packets.tlv import TLVItem
+from ecrterm.packets.tlv import TLV
 from ecrterm.packets.types import ConfigByte
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport

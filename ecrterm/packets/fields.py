@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
-from .tlv import TLVItem, TLVDictionary
+from .tlv import TLV, TLVDictionary
 from .types import CharacterSet, VendorQuirks
 from .context import CurrentContext
 from .text_encoding import encode, decode
@@ -270,25 +270,25 @@ class LLLStringField(LLLVARField, StringField):
 
 
 class TLVField(Field):
-    DATA_TYPE = TLVItem
+    DATA_TYPE = TLV
 
-    def from_bytes(self, v: Union[bytes, List[int]]) -> TLVItem:
-        return TLVItem(bytes(v))
+    def from_bytes(self, v: Union[bytes, List[int]]) -> TLV:
+        return TLV(bytes(v))
 
-    def to_bytes(self, v: TLVItem, length: Optional[int] = None) -> bytes:
+    def to_bytes(self, v: TLV, length: Optional[int] = None) -> bytes:
         if length is not None:
             raise ValueError("Must not give length for TLV container")
         return v.serialize()
 
-    def parse(self, data: Union[bytes, List[int]]) -> Tuple[TLVItem, bytes]:
-        return TLVItem.parse(data, empty_tag=True, dictionary='feig_zvt' if VendorQuirks.FEIG_CVEND in CurrentContext.get('vendor_quirks', set()) else 'zvt')
+    def parse(self, data: Union[bytes, List[int]]) -> Tuple[TLV, bytes]:
+        return TLV.parse(data, empty_tag=True, dictionary='feig_zvt' if VendorQuirks.FEIG_CVEND in CurrentContext.get('vendor_quirks', set()) else 'zvt')
 
-    def serialize(self, data: TLVItem) -> bytes:
+    def serialize(self, data: TLV) -> bytes:
         return data.serialize()
 
-    def __get__(self, instance, objtype=None) -> TLVItem:
+    def __get__(self, instance, objtype=None) -> TLV:
         if not self in instance._values:
-            instance._values[self] = TLVItem()
+            instance._values[self] = TLV()
             instance._values[self].pending = True
         return super().__get__(instance, objtype)
 

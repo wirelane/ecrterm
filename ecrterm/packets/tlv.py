@@ -12,7 +12,7 @@ class TLVClass(IntEnum):
     PRIVATE = 3
 
 
-TLVItemType = TypeVar('TLVItemType', bound='TLVItem')
+TLVType = TypeVar('TLVType', bound='TLV')
 
 
 class NotProvided:
@@ -23,10 +23,10 @@ class NotProvided:
 NOT_PROVIDED = NotProvided()
 
 
-_FIRST_PARAM_TYPE = Union[NotProvided, TLVItemType, List[TLVItemType], Dict[Union[int, str], Any]]
+_FIRST_PARAM_TYPE = Union[NotProvided, TLVType, List[TLVType], Dict[Union[int, str], Any]]
 
 
-class TLVItem:
+class TLV:
     # <editor-fold desc="static T/L helpers">
     @staticmethod
     def _read_tlv_tag(data: bytes, pos: int) -> Tuple[int, int]:
@@ -76,13 +76,13 @@ class TLVItem:
             return bytes(reversed(retval))
     # </editor-fold>
 
-    def __new__(cls: Type[TLVItemType], constructed_value_: _FIRST_PARAM_TYPE = NOT_PROVIDED, *args, **kwargs):
-        if isinstance(constructed_value_, TLVItem):
+    def __new__(cls: Type[TLVType], constructed_value_: _FIRST_PARAM_TYPE = NOT_PROVIDED, *args, **kwargs):
+        if isinstance(constructed_value_, TLV):
             return constructed_value_
         return super().__new__(cls)
 
     def __init__(self, constructed_value_: _FIRST_PARAM_TYPE =NOT_PROVIDED, tag_=None, value_=NOT_PROVIDED, implicit_=False, **kwargs):
-        if isinstance(constructed_value_, TLVItem):
+        if isinstance(constructed_value_, TLV):
             return  # __new__ handled this
 
         self._constructed = False
@@ -168,7 +168,7 @@ class TLVItem:
             if isinstance(value, (tuple,list)):
                 self._value = []
                 for item in value:
-                    if isinstance(item, TLVItem):
+                    if isinstance(item, TLV):
                         self._value.append(item)
                     elif isinstance(item, (tuple, list)) and len(item) == 2:
                         k, v = item
@@ -186,7 +186,7 @@ class TLVItem:
             elif isinstance(value, bytes):
                 self._value = []
                 while len(value):
-                    item, value = TLVItem.parse(value)
+                    item, value = TLV.parse(value)
                     self._value.append(item)
         else:
             if self._type:
@@ -206,7 +206,7 @@ class TLVItem:
                     return item.value_
 
             # Generate an implicit empty tag
-            target = TLVItem(tag_=tag, implicit_=True)
+            target = TLV(tag_=tag, implicit_=True)
             self.value_.append(target)
 
             return self.__getattr__(key)
@@ -234,7 +234,7 @@ class TLVItem:
                 target.value_ = value
                 break
         else:
-            target = TLVItem(tag_=tag, value_=value)
+            target = TLV(tag_=tag, value_=value)
             self.value_.append(target)
 
     def __repr__(self):
@@ -262,7 +262,7 @@ class TLVItem:
     @property
     def items_(self):
         if not self._constructed:
-            raise TypeError("Cannot access items_ of primitive TLVItem")
+            raise TypeError("Cannot access items_ of primitive TLV")
         retval = []
         for v in self.value_:
             if v._type and v._type.name:
@@ -287,7 +287,7 @@ class TLVItem:
             return bytes(retval)
 
     @classmethod
-    def parse(cls: Type[TLVItemType], data: bytes, empty_tag: bool = False, dictionary: Optional[str]=None) -> Tuple[TLVItemType, bytes]:
+    def parse(cls: Type[TLVType], data: bytes, empty_tag: bool = False, dictionary: Optional[str]=None) -> Tuple[TLVType, bytes]:
         pos = 0
 
         if empty_tag:
