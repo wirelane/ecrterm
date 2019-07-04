@@ -462,3 +462,8 @@ class ChangePTConfiguration(Packet):
     wait_for_completion = True
 
     ALLOWED_BITMAPS = ['tlv']
+
+
+class SetTerminalID(CommandWithPassword):
+    CMD_CLASS = 0x06
+    CMD_INSTR = 0x1B
