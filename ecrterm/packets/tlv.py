@@ -108,7 +108,7 @@ class TLV:
             if not self.constructed_:
                 raise TypeError("Tag must be of constructed type to pass kwargs")
             for k, v in kwargs.items():
-                setattr(self, k, v)
+                self.append_(k, v, overwrite=False)
 
     # <editor-fold desc="tag accessors">
     @property
@@ -174,7 +174,7 @@ class TLV:
                         k, v = item
                         if isinstance(k, int):
                             k = "x{:X}".format(k)
-                        setattr(self, k, v)
+                        self.append_(k, v, overwrite=False)
                     else:
                         raise ValueError("Cannot set value {}".format(value))
             elif isinstance(value, dict):
@@ -217,25 +217,7 @@ class TLV:
         if key.startswith("_") or key.endswith("_") or key in ["parse", "serialize"]:
             return super().__setattr__(key, value)
 
-        tag = None
-
-        if self._constructed:
-            if key.startswith('x') and all(e in string.hexdigits for e in key[1:]):
-                tag = int(key[1:], 16)
-            elif isinstance(key, int):
-                tag = key
-
-        if tag is None:
-            return super().__setattr__(key, value)
-
-        for item in self.value_:
-            if item.tag_ == tag:
-                target = item
-                target.value_ = value
-                break
-        else:
-            target = TLV(tag_=tag, value_=value)
-            self.value_.append(target)
+        return self.append_(key, value, overwrite=True)
 
     def __repr__(self):
         if self._tag is None:
@@ -277,6 +259,28 @@ class TLV:
         for v in self.value_:
             retval.append( (v.name_, v.value_) )
         return retval
+
+    def append_(self, key, value, overwrite=False):
+        tag = None
+
+        if self._constructed:
+            if key.startswith('x') and all(e in string.hexdigits for e in key[1:]):
+                tag = int(key[1:], 16)
+            elif isinstance(key, int):
+                tag = key
+
+        if tag is None:
+            return super().__setattr__(key, value)
+
+        if overwrite:
+            for item in self.value_:
+                if item.tag_ == tag:
+                    target = item
+                    target.value_ = value
+                    return
+
+        target = TLV(tag_=tag, value_=value)
+        self.value_.append(target)
 
     def _serialize_value(self) -> bytes:
         if self._value is None:

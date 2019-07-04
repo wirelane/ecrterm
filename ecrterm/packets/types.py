@@ -70,3 +70,12 @@ class CardholderIdentification(IntEnum):
 class OnlineTag(IntEnum):
     OFFLINE = 0x0
     ONLINE = 0x1
+
+
+class FileID(IntEnum):
+    MERCHANT_JOURNAL = 0x01
+    APPLICATION_LOG_FILE = 0x02
+    ECR_PROTOCOL_LOG_FILE = 0x03
+    COMMUNICATION_MODULE_LOG_FILE = 0x04
+    PIN_PAD_LOG_FILE = 0x05
+    RECONCILIATION_DATA = 0x06

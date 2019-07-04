@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
 from .tlv import TLV, TLVDictionary, ContainerType
-from .types import CharacterSet, VendorQuirks, CardholderIdentification, OnlineTag
+from .types import CharacterSet, VendorQuirks, CardholderIdentification, OnlineTag, FileID
 from .context import CurrentContext
 from .text_encoding import encode, decode
 
@@ -303,6 +303,8 @@ TLVDictionary.register(
         0x07: StringField(name="text_line"),
         0x14: FlagByteField(name="character_set", data_type=CharacterSet),
         0x15: StringField(name="language_code", character_set=CharacterSet.ASCII_7BIT),
+        0x1d: BEIntField(name='file_id', length=4),
+        0x1f00: IntField(name="file_size"),
         0x1f10: FlagByteField(name="cardholder_identification", data_type=CardholderIdentification),
         0x1f11: FlagByteField(name='online_tag', data_type=OnlineTag),
         0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.ZVT_8BIT),

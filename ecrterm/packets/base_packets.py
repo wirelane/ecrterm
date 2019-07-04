@@ -468,3 +468,11 @@ class SetTerminalID(CommandWithPassword):
     CMD_CLASS = 0x06
     CMD_INSTR = 0x1B
     wait_for_completion = True
+
+
+class WriteFile(CommandWithPassword):
+    CMD_CLASS = 0x08
+    CMD_INSTR = 0x14
+    wait_for_completion = True
+
+

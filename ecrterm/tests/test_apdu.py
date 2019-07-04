@@ -1,7 +1,7 @@
 from ecrterm.packets.apdu import CommandAPDU, ParseError
 from ecrterm.packets.tlv import TLV
 from ecrterm.packets.fields import ByteField, BytesField, BCDIntField
-from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine, Authorisation
+from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine, Authorisation, WriteFile
 from unittest import TestCase, main
 
 
@@ -170,7 +170,16 @@ class TestAPDUBitmaps(TestCase):
         self.assertEqual(b'\x02\xff\xaa', c.raw_tlv)
 
 
-    # FIXME TLV names
+    # FIXME Test TLV names
+
+
+class TestRegression(TestCase):
+    def test_write_file_apdu(self):
+        c = WriteFile(password='000000', tlv=[
+            (0x2d, {0x1d: 0x20, 0x1f00: 615}),
+            (0x2d, {0x1d: 0x21, 0x1f00: 3403228}),
+        ])
+        c.serialize()
 
 
 if __name__ == '__main__':
