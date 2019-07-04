@@ -1,6 +1,6 @@
 import string
 from enum import IntEnum
-from typing import Union, Tuple, TypeVar, Type, List, Dict, Any, Optional
+from typing import Union, Tuple, TypeVar, Type, List, Dict, Tuple, Any, Optional
 from .context import CurrentContext, enter_context
 from .types import VendorQuirks
 
@@ -23,7 +23,7 @@ class NotProvided:
 NOT_PROVIDED = NotProvided()
 
 
-_FIRST_PARAM_TYPE = Union[NotProvided, TLVType, List[TLVType], Dict[Union[int, str], Any]]
+_FIRST_PARAM_TYPE = Union[NotProvided, TLVType, Tuple[Union[TLVType, List, Tuple]], List[Union[TLVType, List, Tuple]], Dict[Union[int, str], Any]]
 
 
 class TLV:
@@ -331,6 +331,10 @@ class TLV:
 
 class TLVDataType:
     name = None
+    def __init__(self, name=None, *args, **kwargs):
+        if name is not None:
+            self.name = name
+        super().__init__(*args, **kwargs)
 
     def from_bytes(self, value: bytes) -> Any:
         raise NotImplementedError
@@ -357,6 +361,10 @@ class BytesData(TLVDataType):
 
     def to_bytes(self, value: bytes) -> bytes:
         return bytes(value)
+
+
+class ContainerType(TLVDataType):
+    pass
 
 
 TLVDictionary.register(

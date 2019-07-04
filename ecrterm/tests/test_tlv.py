@@ -60,6 +60,16 @@ class TestTLV(TestCase):
         self.assertIsInstance(t1.xfe, TLV)
         self.assertEqual(b'34', t1.xfe.xde)
 
+    def test_container_dual_1(self):
+        t1 = TLV((
+            (0x10, b'\x01\x02'),
+            (0x10, b'\x03\x04'),
+        ))
+
+        self.assertEqual(2, len(t1.value_))
+
+
+
     def test_container_implicit_creation(self):
         t1 = TLV()
 

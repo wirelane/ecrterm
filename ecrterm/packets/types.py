@@ -53,3 +53,20 @@ class CharacterSet(IntEnum):
 
 class VendorQuirks(Enum):
     FEIG_CVEND = auto()
+
+
+class CardholderIdentification(IntEnum):
+    NONE = 0
+    SIGNATURE = 1
+    PIN_ONLINE = 2
+    PIN_OFFLINE_ENCRYPTED = 3
+    PIN_OFFLINE_PLAINTEXT = 4
+    SIGNATURE_AND_PIN_OFFLINE_ENCRYTPED = 5
+    SIGNATURE_AND_PIN_OFFLINE_PLAINTEXT = 6
+    SIGNATURE_AND_PIN_ONLINE = 7
+    UNKNOWN = 0xff
+
+
+class OnlineTag(IntEnum):
+    OFFLINE = 0x0
+    ONLINE = 0x1

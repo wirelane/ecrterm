@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
-from .tlv import TLV, TLVDictionary
-from .types import CharacterSet, VendorQuirks
+from .tlv import TLV, TLVDictionary, ContainerType
+from .types import CharacterSet, VendorQuirks, CardholderIdentification, OnlineTag
 from .context import CurrentContext
 from .text_encoding import encode, decode
 
@@ -196,6 +196,10 @@ class FlagByteField(IntField, FixedLengthField):
             raise TypeError("Must specify data_type")
         super().__init__(*args, **kwargs)
 
+    def from_bytes(self, v: Union[bytes, List[int]]) -> Any:
+        v = super().from_bytes(v)
+        return self.coerce(v)
+
 
 class BCDVariableLengthField(Field):
     DATA_TYPE = str
@@ -297,12 +301,15 @@ TLVDictionary.register(
     'zvt', {
         None: BytesField(),
         0x07: StringField(name="text_line"),
-        0x14: FlagByteField(name="character_set", data_type=CharacterSet),  # FIXME
+        0x14: FlagByteField(name="character_set", data_type=CharacterSet),
         0x15: StringField(name="language_code", character_set=CharacterSet.ASCII_7BIT),
+        0x1f10: FlagByteField(name="cardholder_identification", data_type=CardholderIdentification),
+        0x1f11: FlagByteField(name='online_tag', data_type=OnlineTag),
         0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.ZVT_8BIT),
         0x1F40: StringField(name="device_name", character_set=CharacterSet.ASCII_7BIT),
         0x1F41: StringField(name="software_version", character_set=CharacterSet.ASCII_7BIT),
         0x1F42: BCDVariableLengthField(name="serial_number"),
+        0x2f: ContainerType(name="payment_type"),
     }
 )
 
