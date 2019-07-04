@@ -467,3 +467,4 @@ class ChangePTConfiguration(Packet):
 class SetTerminalID(CommandWithPassword):
     CMD_CLASS = 0x06
     CMD_INSTR = 0x1B
+    wait_for_completion = True
