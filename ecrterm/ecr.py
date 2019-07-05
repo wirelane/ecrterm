@@ -105,17 +105,21 @@ def ecr_log(data, incoming=False):
         if is_stringlike(data):
             data = bs2hl(data)
         # logit to the logfile
-        try:
-            _logfile.write('%s %s\n' % (incoming, toHexString(data)))
-        except Exception:
-            pass
+        if not isinstance(_logfile, A):
+            # FIXME Remove this A() hack
+            try:
+                _logfile.write('%s %s\n' % (incoming, toHexString(data)))
+            except Exception:
+                pass
         try:
             data = repr(parse_represented_data(data))
-            _logfile.write('= %s\n' % data)
+            if not isinstance(_logfile, A):
+                _logfile.write('= %s\n' % data)
         except Exception as e:
             print('DEBUG: Cannot be represented: %s' % data)
             print(e)
-            _logfile.write('? did not understand ?\n')
+            if not isinstance(_logfile, A):
+                _logfile.write('? did not understand ?\n')
             data = toHexString(data)
         print('%s %s' % (incoming, data))
     except Exception:

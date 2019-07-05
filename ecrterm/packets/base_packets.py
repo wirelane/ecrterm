@@ -476,3 +476,6 @@ class WriteFile(CommandWithPassword):
     wait_for_completion = True
 
 
+class RequestFile(Packet):
+    CMD_CLASS = 0x04
+    CMD_INSTR = 0x0c

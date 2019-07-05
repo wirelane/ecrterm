@@ -257,10 +257,7 @@ def HexListToBinString(hexlist):
 
 
 def BinStringToHexList(binstring):
-    hexlist = []
-    for byte in binstring:
-        hexlist = hexlist + [byte if isinstance(byte, int) else ord(byte)]
-    return hexlist
+    return [byte if isinstance(byte, int) else ord(byte) for byte in binstring]
 
 
 def hl2bs(hexlist):
