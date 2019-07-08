@@ -6,7 +6,7 @@ Maybe create a small console program which allows us to:
 - see the representation of the packet
 - ability for incoming and outgoing
 """
-from logging import error
+import logging
 from time import sleep
 
 from ecrterm.common import TERMINAL_STATUS_CODES
@@ -17,7 +17,6 @@ from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
     Registration, ResetTerminal, StatusEnquiry, StatusInformation, WriteFiles)
 from ecrterm.transmission._transmission import Transmission
-from ecrterm.packets.tlv import TLV
 from ecrterm.packets.types import ConfigByte
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
@@ -25,12 +24,7 @@ from ecrterm.transmission.transport_socket import SocketTransport
 from ecrterm.utils import detect_pt_serial, is_stringlike
 
 
-class A(object):
-    def write(self, *args, **kwargs):
-        pass
-
-
-_logfile = A()
+logger = logging.getLogger('ecrterm.ecr')
 
 
 def dismantle_serial_packet(data):
@@ -97,35 +91,31 @@ def parse_represented_data(data):
 
 
 def ecr_log(data, incoming=False):
+    from warnings import warn
+    warn("ecr_log has been deprecated", DeprecationWarning, stacklevel=2)
+    log_packet(data, incoming)
+
+
+def log_packet(data: bytes, is_incoming=False, logger=None):
+    logger = logger or globals()['logger']
+    incoming_flag = '<' if is_incoming else '>'
     try:
-        if incoming:
-            incoming = '<'
-        else:
-            incoming = '>'
-        if is_stringlike(data):
-            data = bs2hl(data)
-        # logit to the logfile
-        if not isinstance(_logfile, A):
-            # FIXME Remove this A() hack
-            try:
-                _logfile.write('%s %s\n' % (incoming, toHexString(data)))
-            except Exception:
-                pass
         try:
-            data = repr(parse_represented_data(data))
-            if not isinstance(_logfile, A):
-                _logfile.write('= %s\n' % data)
-        except Exception as e:
-            print('DEBUG: Cannot be represented: %s' % data)
-            print(e)
-            if not isinstance(_logfile, A):
-                _logfile.write('? did not understand ?\n')
-            data = toHexString(data)
-        print('%s %s' % (incoming, data))
-    except Exception:
-        import traceback
-        traceback.print_exc()
-        print('| error in log')
+            if not isinstance(data, bytes):
+                from warnings import warn
+                warn("log_packet should be called with a bytes argument, not %s" % type(data), DeprecationWarning,
+                     stacklevel=3)
+                data = bytes(data)
+
+            logger.log(9, '%s %s', incoming_flag, data.hex())
+
+            r = repr(parse_represented_data(data))
+            logger.debug('%s %s', incoming_flag, r)
+
+        except:
+            logger.exception("Could not parse %s packet", 'in' if is_incoming else 'out')
+    except:
+        logger.exception("Exception during logging")
 
 
 class ECR(object):
@@ -153,8 +143,7 @@ class ECR(object):
             self.transport = SerialTransport(device)
         elif device.startswith('socket://'):
             self.transport = SocketTransport(uri=device)
-        # This turns on debug logging
-        # self.transport.slog = ecr_log
+
         self.daylog = []
         self.daylog_template = ''
         self.history = []
@@ -203,13 +192,8 @@ class ECR(object):
         registers to the PT, not locking the master menu on it.
         do not use in production environment.
         """
-        ret = self.transmit(
-            Registration(
-                password=self.password,
-                config_byte=ConfigByte.DEFAULT & ~ConfigByte.ECR_CONTROLS_ADMIN))
-        if ret == TRANSMIT_OK:
-            self._state_registered = True
-        return ret
+        return self.register(password=self.password,
+                             config_byte=ConfigByte.DEFAULT & ~ConfigByte.ECR_CONTROLS_ADMIN)
 
     def _end_of_day_info_packet(self, history=None):
         """
@@ -252,9 +236,7 @@ class ECR(object):
             try:
                 self.daylog = (self.daylog_template % eod_info).split('\n')
             except Exception:
-                import traceback
-                traceback.print_exc()
-                error('Error in Daylog Template')
+                logger.exception("Error in daylog template")
         return result
 
     def last_printout(self):
@@ -295,7 +277,7 @@ class ECR(object):
                 return False
         else:
             # @todo: remove this.
-            print('transmit error?')
+            logger.error("transmit error?")
         return False
 
     def restart(self):
@@ -398,8 +380,8 @@ class ECR(object):
                 ok, message = self.transport.receive(timeout)
                 if ok and message:
                     return message
-            except Exception as e:
-                print(e)
+            except:
+                logger.exception()
                 continue
             print('-mark-')
 
@@ -417,11 +399,10 @@ class ECR(object):
 
 
 if __name__ == '__main__':
-    _logfile = open('./terminallog.txt', 'aw')
-    _logfile.write('-MARK-\n')
+    logging.basicConfig(level=9, filename='./terminallog.txt', filemode='aw')
+    logging.info('-MARK-')
     e = ECR()
     # e.end_of_day()
     e.show_text(['Hello world!', 'Testing', 'myself.'], 5, 0)
     print('preparing for payment.')
-    e.get_ready()
     print(e.payment(50))

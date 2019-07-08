@@ -7,7 +7,9 @@ The Serial Layer is a transport used for
 """
 
 import serial
-from ecrterm.common import Transport, noop
+import logging
+from functools import partial
+from ecrterm.common import Transport
 from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
 from ecrterm.crc import crc_xmodem16
 from ecrterm.exceptions import (
@@ -21,17 +23,7 @@ from time import time
 
 SERIAL_DEBUG = False
 
-
-def std_serial_log(instance, data, incoming=False):
-    try:
-        if is_stringlike(incoming):
-            data = bs2hl(data)
-        if incoming:
-            print('< %s' % toHexString(data))
-        else:
-            print('> %s' % toHexString(data))
-    except Exception:
-        print('| error in log')
+logger = logging.getLogger('ecrterm.transport.serial')
 
 
 class SerialMessage(object):
@@ -100,12 +92,14 @@ class SerialMessage(object):
 
 class SerialTransport(Transport):
     SerialCls = serial.Serial
-    slog = noop
     insert_delays = True
 
     def __init__(self, device):
         self.device = device
         self.connection = None
+
+        from ecrterm.ecr import log_packet
+        self._log_packet = partial(log_packet, logger=logger)
 
     def connect(self, timeout=30):
         ser = self.SerialCls(
@@ -139,23 +133,15 @@ class SerialTransport(Transport):
 
     def write(self, something=None):
         if something:
-            try:
-                self.slog(bs2hl(something))
-            finally:
-                self.connection.write(ensure_bytes(something))  # !?
+            self._log_packet(something, False)
+            self.connection.write(ensure_bytes(something))  # !?
 
     def write_ack(self):
         # writes an ack.
-        try:
-            self.slog([ACK])
-        finally:
-            self.connection.write(ensure_bytes(chr(ACK)))
+        self.write([ACK])
 
     def write_nak(self):
-        try:
-            self.slog([NAK])
-        finally:
-            self.connection.write(ensure_bytes(chr(NAK)))
+        self.write([NAK])
 
     def read(self, timeout=TIMEOUT_T2):
         """Reads a message packet. any errors are raised directly."""
@@ -171,7 +157,7 @@ class SerialTransport(Transport):
             raise TransportLayerException('Reading Header Timeout')
         # test our header to be valid
         if header != [DLE, STX]:
-            self.slog(header, True)
+            self._log_packet(header, True, logger=logger)
             raise TransportLayerException('Header Error: %s' % header)
         # read until DLE, ETX is reached.
         dle = False
@@ -206,7 +192,7 @@ class SerialTransport(Transport):
                 raise TransportLayerException('DLE without sense detected.')
             # we add this byte to our apdu.
             apdu += [b]
-        self.slog(header + apdu + [DLE, ETX] + crc, True)
+        self._log_packet(header + apdu + [DLE, ETX] + crc, True, logger=logger)
         return crc, apdu
 
     def read_message(self, timeout=TIMEOUT_T2):
@@ -232,7 +218,7 @@ class SerialTransport(Transport):
         while not i or (i < 2 and not crc_ok):
             crc_ok, message = self.read_message(timeout)
             if not crc_ok:
-                self.log('CRC Checksum Error, retry %s' % i)
+                logger.log(logging.WARNING if i <= 2 else logging.ERROR, 'CRC Checksum Error, retry %s' % i)
             i += 1
         if not crc_ok:
             # Message Fail!?
@@ -258,7 +244,7 @@ class SerialTransport(Transport):
                 # Just retrying seems to help.
                 if time() - ts_start > 1:
                     break
-            self.slog(acknowledge, True)
+            self._log_packet(acknowledge, True, logger=logger)
             # if nak, we retry, if ack, we read, if other, we raise.
             if acknowledge == ensure_bytes(chr(ACK)):
                 # everything alright.

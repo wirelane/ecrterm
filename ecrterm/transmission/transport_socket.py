@@ -1,3 +1,5 @@
+import logging
+from functools import partial
 from binascii import hexlify
 from socket import (
     IPPROTO_TCP, SHUT_RDWR, SO_KEEPALIVE, SOL_SOCKET, create_connection)
@@ -7,7 +9,7 @@ from sys import platform
 from typing import Tuple
 from urllib.parse import parse_qs, urlsplit
 
-from ecrterm.common import Transport, noop
+from ecrterm.common import Transport
 from ecrterm.conv import bs2hl
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException,
@@ -23,6 +25,9 @@ try:
     from socket import TCP_KEEPCNT
 except ImportError:
     TCP_KEEPCNT = None
+
+
+logger = logging.getLogger('ecrterm.transport.socket')
 
 
 def hexformat(data: bytes) -> str:
@@ -43,7 +48,6 @@ class SocketTransport(Transport):
     flags details.
     """
     insert_delays = False
-    slog = noop
     defaults = dict(
         connect_timeout=5, so_keepalive=0, tcp_keepidle=1, tcp_keepintvl=3,
         tcp_keepcnt=5, debug='false', packetdebug='false')
@@ -71,9 +75,9 @@ class SocketTransport(Transport):
             'debug', [self.defaults['debug']])[0] == 'true'
         self._packetdebug = qs_parsed.get(
             'packetdebug', [self.defaults['packetdebug']])[0] == 'true'
-        if self._debug:
-            from ecrterm.ecr import ecr_log
-            self.slog = ecr_log
+
+        from ecrterm.ecr import log_packet
+        self._log_packet = partial(log_packet, logger=logger)
 
     def connect(self, timeout: int=None) -> bool:
         """
@@ -104,7 +108,7 @@ class SocketTransport(Transport):
     def send(self, apdu, tries: int=0, no_wait: bool=False):
         """Send data."""
         to_send = apdu.serialize()
-        self.slog(data=bs2hl(binstring=to_send), incoming=False)
+        self._log_packet(data=to_send, is_incoming=False)
         total_sent = 0
         msglen = len(to_send)
         while total_sent < msglen:
@@ -169,7 +173,7 @@ class SocketTransport(Transport):
         """
         self.sock.settimeout(timeout)
         data = self._receive()
-        self.slog(data=bs2hl(binstring=data), incoming=True)
+        self._log_packet(data, is_incoming=True)
         return True, Packet.parse(data)
 
     def close(self):

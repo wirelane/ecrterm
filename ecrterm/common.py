@@ -276,18 +276,7 @@ DEBUG_PACKET_NAME = {
 }
 
 
-def noop(*args, **kwargs):
-    pass
-
-
-class Logling(object):
-    """A simple log interface."""
-
-    def log(self, *args, **kwargs):
-        print(" ".join(args))
-
-
-class Dumpling(object):
+class Dumpling:
     """
     Interface, which defines that this object can
       - dump itself into a list of bytes
@@ -310,7 +299,7 @@ class Dumpling(object):
         return len(self.dump())
 
 
-class Transport(Logling):
+class Transport:
     insert_delays = False
 
     def connect(self, *args, **kwargs):
