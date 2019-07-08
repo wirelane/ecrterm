@@ -531,3 +531,7 @@ class WriteFiles(WriteFileBase):
             return self._files[file_id][offset:(offset+length)]
         else:
             return self._files[file_id][offset:]
+
+    @classmethod
+    def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
+        return False
