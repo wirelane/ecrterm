@@ -1,4 +1,6 @@
 import datetime
+import struct
+from typing import Dict
 
 from .apdu import CommandAPDU
 from .fields import *
@@ -470,12 +472,62 @@ class SetTerminalID(CommandWithPassword):
     wait_for_completion = True
 
 
-class WriteFile(CommandWithPassword):
+class RequestFile(Packet):
+    CMD_CLASS = 0x04
+    CMD_INSTR = 0x0c
+
+
+class WriteFileBase(CommandWithPassword):
     CMD_CLASS = 0x08
     CMD_INSTR = 0x14
     wait_for_completion = True
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for k, v in self.get_files_().items():
+            self.tlv.append_('x2d', {'x1d': bytes([k]), 'x1f00': struct.pack('!L', v)}, overwrite=False)
 
-class RequestFile(Packet):
-    CMD_CLASS = 0x04
-    CMD_INSTR = 0x0c
+    def get_files_(self) -> Dict[int, int]:
+        raise NotImplementedError
+
+    def get_file_content_(self, file_id: int, offset: int, length: Optional[int] = None):
+        raise NotImplementedError
+
+    def _handle_super_response(self, response, tm):
+        if isinstance(response, RequestFile):
+            pkt = self.get_answer_(response)
+            if pkt is not None:
+                tm.history += [(False, pkt), ]
+                tm.transport.send(pkt, no_wait=True)
+                return True, False
+        return super()._handle_super_response(response, tm)
+
+    def get_answer_(self, cmd):
+        if isinstance(cmd, RequestFile):
+            # FIXME Maybe more fancy way to select file
+            # FIXME Ensure necessary tags are present
+            # FIXME Find out maximum read length
+            readlength = 65000
+            file_id = cmd.tlv.x2d.x1d
+            offset = cmd.tlv.x2d.x1e
+            data = self.get_file_content_(file_id, offset, readlength)
+            return PacketReceived(tlv={0x2d: {
+                0x1d: bytes([file_id]),
+                0x1e: struct.pack('!L', offset),
+                0x1c: data,
+            }})
+
+
+class WriteFiles(WriteFileBase):
+    def __init__(self, files: Dict[int, bytes] = None, *args, **kwargs):
+        self._files = files
+        super().__init__(*args, **kwargs)
+
+    def get_files_(self) -> Dict[int, int]:
+        return {k: len(v) for (k, v) in self._files.items()}
+
+    def get_file_content_(self, file_id: int, offset: int, length: Optional[int] = None):
+        if length is not None:
+            return self._files[file_id][offset:(offset+length)]
+        else:
+            return self._files[file_id][offset:]

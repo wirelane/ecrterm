@@ -15,7 +15,7 @@ from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException)
 from ecrterm.packets.base_packets import (
     Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
-    Registration, ResetTerminal, StatusEnquiry, StatusInformation)
+    Registration, ResetTerminal, StatusEnquiry, StatusInformation, WriteFiles)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.packets.tlv import TLV
 from ecrterm.packets.types import ConfigByte
@@ -402,6 +402,9 @@ class ECR(object):
                 print(e)
                 continue
             print('-mark-')
+
+    def write_files(self, password, files):
+        return self.transmit(WriteFiles(password=password, files=files))
 
     def detect_pt(self):
         # note: this only executes utils.detect_pt with the local ecrterm.
