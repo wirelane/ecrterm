@@ -3,7 +3,7 @@ Transmission Basics.
 @author g4b
 """
 from ecrterm.exceptions import TransmissionException, TransportLayerException
-from ecrterm.packets.base_packets import PacketReceived
+from ecrterm.packets.base_packets import PacketReceived, Packet
 from ecrterm.transmission.signals import TIMEOUT_T4_DEFAULT, TRANSMIT_OK
 
 
@@ -36,7 +36,7 @@ class Transmission(object):
         """Send the "Packet Received" Packet."""
         packet = PacketReceived()
         self.history += [(False, packet), ]
-        self.transport.send(packet, no_wait=True)
+        self.transport.send(packet.serialize(), no_wait=True)
 
     def handle_packet_response(self, packet, response):
         """A shortcut for calling the handle_response of the packet."""
@@ -54,7 +54,8 @@ class Transmission(object):
         self.last = packet
         try:
             history += [(False, packet)]
-            success, response = self.transport.send(packet)
+            success, response = self.transport.send(packet.serialize())
+            response = Packet.parse(response)
             history += [(True, response)]
             # we sent the packet.
             # now lets wait until we get master back.
@@ -66,6 +67,7 @@ class Transmission(object):
                 try:
                     success, response = self.transport.receive(
                         self.actual_timeout)
+                    response = Packet.parse(response)
                     history += [(True, response)]
                 except TransportLayerException:
                     # some kind of timeout.

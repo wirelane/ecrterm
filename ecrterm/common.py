@@ -2,6 +2,8 @@
 Common Base classes, Definitions and Ancestors.
 """
 
+from typing import Tuple
+
 INTERMEDIATE_STATUS_CODES = {
     0x00: 'PT is waiting for amount - confirmation',
     0x01: 'please watch PIN - Pad',
@@ -307,8 +309,8 @@ class Transport:
         connect to transport.
         """
 
-    def receive(self, timeout=None, *args, **kwargs):
+    def receive(self, timeout=None, *args, **kwargs) -> Tuple[bool, bytes]:
         """Receive data."""
 
-    def send(self, message, *args, **kwargs):
+    def send(self, message: bytes, *args, **kwargs):
         """Send data."""

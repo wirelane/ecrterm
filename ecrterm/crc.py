@@ -70,15 +70,15 @@ TABLE_XMODEM16 = [
     15843, 11370, 7921, 3960]
 
 
-def crc_xmodem16(something):
+def crc_xmodem16(data: bytes):
     """
         short for hardcoded 0x8408 (XMODEM-16) crc checksum from a predefined
         codetable.
     """
     crc_table = TABLE_XMODEM16
     crc = 0
-    for i in something:
+    for i in data:
         hb = int(crc / 256.0)
         lb = crc - (256 * hb)
-        crc = crc_table[lb ^ ord(i)] ^ hb
+        crc = crc_table[lb ^ i] ^ hb
     return crc

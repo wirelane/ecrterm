@@ -9,6 +9,7 @@ The Serial Layer is a transport used for
 import serial
 import logging
 from functools import partial
+from typing import Tuple, Union
 from ecrterm.common import Transport
 from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
 from ecrterm.crc import crc_xmodem16
@@ -32,18 +33,13 @@ class SerialMessage(object):
     and inserting it into the final Serial Packet
     CRC and double-DLEs included.
     """
-    apdu = None
+    apdu: bytes = None
 
-    def __init__(self, apdu=None):
-        if is_stringlike(apdu):
-            # try to get the list of bytes.
-            apdu = toBytes(apdu.replace(' ', ''))
-        elif isinstance(apdu, APDU):
-            apdu = list(apdu.serialize())
-        self.apdu = apdu
+    def __init__(self, data=None):
+        self.apdu = data
 
     def _get_crc(self):
-        data = hl2bs(self.apdu + [ETX])
+        data = self.apdu + bytes([ETX])
         try:
             return crc_xmodem16(data)
         except Exception:
@@ -59,35 +55,13 @@ class SerialMessage(object):
     crc_h = property(_get_crc_h)
 
     def crc(self):
-        return [self.crc_l, self.crc_h]
-
-    def enrich(self, apdu):
-        # add 0x10 to each 0x10 in apdu
-        # since we use del later, it would occasionally hit the instance
-        apdu = apdu[:]
-        new_apdu = []
-        while len(apdu):
-            if apdu.count(DLE):
-                new_apdu += apdu[:apdu.index(DLE) + 1] + [DLE]
-                del apdu[:apdu.index(DLE) + 1]
-            else:
-                new_apdu += apdu
-                apdu = []
-        return new_apdu
+        return bytes([self.crc_l, self.crc_h])
 
     def __repr__(self):
         return 'SerialMessage (APDU: %s, CRC-L: %s CRC-H: %s)' % (
             toHexString(self.apdu),
             hex(self.crc_l),
             hex(self.crc_h))
-
-    def dump_message(self):
-        # if 0x10 in apdu:
-        apdu = self.enrich(self.apdu)
-        return [DLE, STX] + apdu + [DLE, ETX, self.crc_l, self.crc_h]
-
-    def as_bin(self):
-        return hl2bs(self.dump_message())
 
 
 class SerialTransport(Transport):
@@ -131,53 +105,55 @@ class SerialTransport(Transport):
             self.connection.flushInput()
             self.connection.flushOutput()
 
-    def write(self, something=None):
-        if something:
-            self._log_packet(something, False)
-            self.connection.write(ensure_bytes(something))  # !?
+    def write(self, data: bytes):
+        if len(data) < 3:
+            logger.log(9, '>> %s', data.hex())
+        self.connection.write(data)
 
     def write_ack(self):
         # writes an ack.
-        self.write([ACK])
+        self.write(bytes([ACK]))
 
     def write_nak(self):
-        self.write([NAK])
+        self.write(bytes([NAK]))
 
-    def read(self, timeout=TIMEOUT_T2):
+    def read(self, timeout=TIMEOUT_T2) -> Tuple[bytes, bytes]:
         """Reads a message packet. any errors are raised directly."""
         # if in 5 seconds no message appears, we respond with a nak and
         # raise an error.
         self.connection.timeout = timeout
-        apdu = []
-        crc = None
+
         header = self.connection.read(2)
-        header = bs2hl(header)
-        # test if there was a transmission:
-        if header == []:
+
+        if len(header) < 2:
             raise TransportLayerException('Reading Header Timeout')
-        # test our header to be valid
-        if header != [DLE, STX]:
-            self._log_packet(header, True, logger=logger)
-            raise TransportLayerException('Header Error: %s' % header)
+        if header != bytes([DLE, STX]):
+            raise TransportLayerException('Header Error: %s' % header.hex())
+
+        data = bytearray()
+
+        crc = None
+
         # read until DLE, ETX is reached.
         dle = False
+
         # timeout to T1 after header.
         self.connection.timeout = TIMEOUT_T1
+
         while not crc:
-            b = ord(self.connection.read(1))  # read a byte.
-            if b is None:
+            inb = self.connection.read(1)  # read a byte.
+            if inb is None or len(inb) == 0:
                 # timeout
                 raise TransportLayerException('Timeout T1 reading stream.')
+            b = inb[0]
             if b == ETX and dle:
                 # dle was set, and this is ETX, so we are at the end.
                 # we read the CRC now.
                 crc = self.connection.read(2)
-                if not crc:
+                if not crc or len(crc) < 2:
                     raise TransportLayerException('Timeout T1 reading CRC')
-                else:
-                    crc = bs2hl(crc)
                 # and break
-                continue
+                break
             elif b == DLE:
                 if not dle:
                     # this is a dle
@@ -191,14 +167,14 @@ class SerialTransport(Transport):
                 # this seems to be an error.
                 raise TransportLayerException('DLE without sense detected.')
             # we add this byte to our apdu.
-            apdu += [b]
-        self._log_packet(header + apdu + [DLE, ETX] + crc, True, logger=logger)
-        return crc, apdu
+            data.append(b)
+        self._log_packet(data, True)
+        return crc, data
 
-    def read_message(self, timeout=TIMEOUT_T2):
+    def read_message(self, timeout=TIMEOUT_T2) -> Tuple[bool, bytes]:
         try:
-            crc, apdu = self.read(timeout)
-            msg = SerialMessage(apdu)
+            crc, data = self.read(timeout)
+            msg = SerialMessage(data)
         except Exception:
             # this is a NAK - re-raise for further investigation.
             self.write_nak()
@@ -206,66 +182,69 @@ class SerialTransport(Transport):
         # test the CRC:
         if msg.crc() == crc:
             self.write_ack()
-            return True, msg
+            return True, data
         else:
             # self.write_nak()
-            return False, msg
+            return False, data
 
-    def receive(self, timeout=TIMEOUT_T2):
+    def receive(self, timeout=TIMEOUT_T2, *args, **kwargs) -> Tuple[bool, bytes]:
+        crc_ok = False
+        data = None
         # receive a message up to three times.
-        i = 0
-        crc_ok = None
-        while not i or (i < 2 and not crc_ok):
-            crc_ok, message = self.read_message(timeout)
+        for i in range(3):
+            crc_ok, data = self.read_message(timeout)
             if not crc_ok:
                 logger.log(logging.WARNING if i <= 2 else logging.ERROR, 'CRC Checksum Error, retry %s' % i)
-            i += 1
+            else:
+                break
         if not crc_ok:
             # Message Fail!?
             self.write_nak()
-            return False, message.apdu
+            return False, data
         # otherwise
-        return True, Packet.parse(message.apdu)
+        return True, data
 
-    def send_message(self, message, tries=0, no_wait=False):
+    def send_message(self, data: bytes, tries=0, no_wait=False):
         """
         sends input with write
         returns output with read.
         if skip_read is True, it only returns true, you have to read
         yourself.
         """
-        if message:
-            self.write(message.as_bin())
+        if data:
+            message = SerialMessage(data)
+            self._log_packet(data, False)
+            self.write(bytes([DLE, STX]) + data.replace(bytes([DLE]), bytes([DLE, DLE])) + bytes([DLE, ETX, message.crc_l, message.crc_h]))
             acknowledge = b''
             ts_start = time()
-            while not acknowledge:
+            while len(acknowledge) < 1:
                 acknowledge = self.connection.read(1)
                 # With ingenico devices, acknowledge is often empty.
                 # Just retrying seems to help.
                 if time() - ts_start > 1:
                     break
-            self._log_packet(acknowledge, True, logger=logger)
+            logger.log(9, '<< %s', acknowledge.hex())
             # if nak, we retry, if ack, we read, if other, we raise.
-            if acknowledge == ensure_bytes(chr(ACK)):
+            if acknowledge[0] == ACK:
                 # everything alright.
                 if no_wait:
                     return True
                 return self.receive()
-            elif acknowledge == ensure_bytes(chr(NAK)):
+            elif acknowledge[0] == NAK:
                 # not everything allright.
                 # if tries < 3:
                 #    return self.send_message(message, tries + 1, no_answer)
                 # else:
                 raise TransportLayerException('Could not send message')
-            elif not acknowledge:
+            elif not len(acknowledge) < 1:
                 raise TransportTimeoutException('No Answer, Possible Timeout')
             else:
                 raise TransportLayerException(
-                    'Unknown Acknowledgment Byte %s' % bs2hl(acknowledge))
+                    'Unknown Acknowledgment Byte %s' % acknowledge.hex())
 
-    def send(self, apdu, tries=0, no_wait=False):
+    def send(self, data: bytes, tries=0, no_wait=False):
         """Automatically converts an apdu into a message."""
-        return self.send_message(SerialMessage(apdu), tries, no_wait)
+        return self.send_message(data, tries, no_wait)
 
 
 # self test

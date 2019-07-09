@@ -105,17 +105,16 @@ class SocketTransport(Transport):
         except (ConnectionError, SocketTimeout) as exc:
             raise TransportConnectionFailed(exc.args[0])
 
-    def send(self, apdu, tries: int=0, no_wait: bool=False):
+    def send(self, data, tries: int=0, no_wait: bool=False):
         """Send data."""
-        to_send = apdu.serialize()
-        self._log_packet(data=to_send, is_incoming=False)
+        self._log_packet(data=data, is_incoming=False)
         total_sent = 0
-        msglen = len(to_send)
+        msglen = len(data)
         while total_sent < msglen:
-            sent = self.sock.send(to_send[total_sent:])
+            sent = self.sock.send(data[total_sent:])
             if self._packetdebug:
                 print('sent', sent, 'bytes of', hexformat(
-                    data=to_send[total_sent:]))
+                    data=data[total_sent:]))
             if sent == 0:
                 raise RuntimeError('Socket connection broken.')
             total_sent += sent
@@ -167,14 +166,14 @@ class SocketTransport(Transport):
         return data + new_data
 
     def receive(
-            self, timeout=None, *args, **kwargs) -> Tuple[bool, Packet]:
+            self, timeout=None, *args, **kwargs) -> Tuple[bool, bytes]:
         """
-        Receive data, return success status and ADPUPacket instance.
+        Receive data, return success status and packet bytes
         """
         self.sock.settimeout(timeout)
         data = self._receive()
         self._log_packet(data, is_incoming=True)
-        return True, Packet.parse(data)
+        return True, data
 
     def close(self):
         """Shutdown and close the connection."""
