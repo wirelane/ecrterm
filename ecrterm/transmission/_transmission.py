@@ -2,10 +2,13 @@
 Transmission Basics.
 @author g4b
 """
+import logging
+
 from ecrterm.exceptions import TransmissionException, TransportLayerException
 from ecrterm.packets.base_packets import PacketReceived, Packet
 from ecrterm.transmission.signals import TIMEOUT_T4_DEFAULT, TRANSMIT_OK
 
+logger = logging.getLogger('ecrterm.transmission')
 
 class Transmission(object):
     """
@@ -36,6 +39,7 @@ class Transmission(object):
         """Send the "Packet Received" Packet."""
         packet = PacketReceived()
         self.history += [(False, packet), ]
+        logger.debug("> %r", packet)
         self.transport.send(packet.serialize(), no_wait=True)
 
     def handle_packet_response(self, packet, response):
@@ -54,8 +58,10 @@ class Transmission(object):
         self.last = packet
         try:
             history += [(False, packet)]
+            logger.debug("> %r", packet)
             success, response = self.transport.send(packet.serialize())
             response = Packet.parse(response)
+            logger.debug("< %r", response)
             history += [(True, response)]
             # we sent the packet.
             # now lets wait until we get master back.
@@ -68,6 +74,7 @@ class Transmission(object):
                     success, response = self.transport.receive(
                         self.actual_timeout)
                     response = Packet.parse(response)
+                    logger.debug("< %r", response)
                     history += [(True, response)]
                 except TransportLayerException:
                     # some kind of timeout.
@@ -79,7 +86,7 @@ class Transmission(object):
                     # we actually have to handle a last packet
                     stay_master = self.handle_packet_response(
                         packet, response)
-                    print('Is Master Read Ahead happened.')
+                    logger.warning('Is Master Read Ahead happened.')
                     self.is_master = stay_master
         except Exception as e:
             self.is_master = True

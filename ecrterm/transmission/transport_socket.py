@@ -10,11 +10,9 @@ from typing import Tuple
 from urllib.parse import parse_qs, urlsplit
 
 from ecrterm.common import Transport
-from ecrterm.conv import bs2hl
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException,
     TransportTimeoutException)
-from ecrterm.packets.base_packets import Packet
 from ecrterm.transmission.signals import TIMEOUT_T2
 
 if platform == 'linux':
@@ -76,9 +74,6 @@ class SocketTransport(Transport):
         self._packetdebug = qs_parsed.get(
             'packetdebug', [self.defaults['packetdebug']])[0] == 'true'
 
-        from ecrterm.ecr import log_packet
-        self._log_packet = partial(log_packet, logger=logger)
-
     def connect(self, timeout: int=None) -> bool:
         """
         Connect to the TCP socket. Return `True` on successful
@@ -105,9 +100,9 @@ class SocketTransport(Transport):
         except (ConnectionError, SocketTimeout) as exc:
             raise TransportConnectionFailed(exc.args[0])
 
-    def send(self, data, tries: int=0, no_wait: bool=False):
+    def send(self, data: bytes, tries: int=0, no_wait: bool=False):
         """Send data."""
-        self._log_packet(data=data, is_incoming=False)
+        logger.debug('>> %s', data.hex())
         total_sent = 0
         msglen = len(data)
         while total_sent < msglen:
@@ -172,7 +167,7 @@ class SocketTransport(Transport):
         """
         self.sock.settimeout(timeout)
         data = self._receive()
-        self._log_packet(data, is_incoming=True)
+        logger.debug('<< %s', data.hex())
         return True, data
 
     def close(self):

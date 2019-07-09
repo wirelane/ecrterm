@@ -90,34 +90,6 @@ def parse_represented_data(data):
     return p
 
 
-def ecr_log(data, incoming=False):
-    from warnings import warn
-    warn("ecr_log has been deprecated", DeprecationWarning, stacklevel=2)
-    log_packet(data, incoming)
-
-
-def log_packet(data: bytes, is_incoming=False, logger=None):
-    logger = logger or globals()['logger']
-    incoming_flag = '<' if is_incoming else '>'
-    try:
-        try:
-            if not isinstance(data, bytes):
-                from warnings import warn
-                warn("log_packet should be called with a bytes argument, not %s" % type(data), DeprecationWarning,
-                     stacklevel=3)
-                data = bytes(data)
-
-            logger.log(9, '%s %s', incoming_flag, data.hex())
-
-            r = repr(parse_represented_data(data))
-            logger.debug('%s %s', incoming_flag, r)
-
-        except:
-            logger.exception("Could not parse %s packet", 'in' if is_incoming else 'out')
-    except:
-        logger.exception("Exception during logging")
-
-
 class ECR(object):
     transmitter = None
     transport = None

@@ -9,17 +9,14 @@ The Serial Layer is a transport used for
 import serial
 import logging
 from functools import partial
-from typing import Tuple, Union
+from typing import Tuple
 from ecrterm.common import Transport
-from ecrterm.conv import bs2hl, hl2bs, toBytes, toHexString
+from ecrterm.conv import toHexString
 from ecrterm.crc import crc_xmodem16
 from ecrterm.exceptions import (
     TransportLayerException, TransportTimeoutException)
-from ecrterm.packets.apdu import APDU
-from ecrterm.packets.base_packets import Packet
 from ecrterm.transmission.signals import (
     ACK, DLE, ETX, NAK, STX, TIMEOUT_T1, TIMEOUT_T2)
-from ecrterm.utils import ensure_bytes, is_stringlike
 from time import time
 
 SERIAL_DEBUG = False
@@ -72,9 +69,6 @@ class SerialTransport(Transport):
         self.device = device
         self.connection = None
 
-        from ecrterm.ecr import log_packet
-        self._log_packet = partial(log_packet, logger=logger)
-
     def connect(self, timeout=30):
         ser = self.SerialCls(
             port=self.device, baudrate=9600, parity=serial.PARITY_NONE,
@@ -107,7 +101,7 @@ class SerialTransport(Transport):
 
     def write(self, data: bytes):
         if len(data) < 3:
-            logger.log(9, '>> %s', data.hex())
+            logger.debug('>> %s', data.hex())
         self.connection.write(data)
 
     def write_ack(self):
@@ -168,7 +162,7 @@ class SerialTransport(Transport):
                 raise TransportLayerException('DLE without sense detected.')
             # we add this byte to our apdu.
             data.append(b)
-        self._log_packet(data, True)
+        logger.debug("<< %s", data.hex())
         return crc, data
 
     def read_message(self, timeout=TIMEOUT_T2) -> Tuple[bool, bytes]:
@@ -213,7 +207,6 @@ class SerialTransport(Transport):
         """
         if data:
             message = SerialMessage(data)
-            self._log_packet(data, False)
             self.write(bytes([DLE, STX]) + data.replace(bytes([DLE]), bytes([DLE, DLE])) + bytes([DLE, ETX, message.crc_l, message.crc_h]))
             acknowledge = b''
             ts_start = time()
@@ -223,7 +216,7 @@ class SerialTransport(Transport):
                 # Just retrying seems to help.
                 if time() - ts_start > 1:
                     break
-            logger.log(9, '<< %s', acknowledge.hex())
+            logger.debug('<< %s', acknowledge.hex())
             # if nak, we retry, if ack, we read, if other, we raise.
             if acknowledge[0] == ACK:
                 # everything alright.
