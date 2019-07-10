@@ -497,8 +497,11 @@ class WriteFileBase(CommandWithPassword):
         if isinstance(response, RequestFile):
             pkt = self.get_answer_(response)
             if pkt is not None:
+                # FIXME There should be an API for this  (basically currently a copy of "send_received()")
                 tm.history += [(False, pkt), ]
-                tm.transport.send(pkt, no_wait=True)
+                from ecrterm.transmission._transmission import logger
+                logger.debug("> %r", pkt)
+                tm.transport.send(pkt.serialize(), no_wait=True)
                 return True, False
         return super()._handle_super_response(response, tm)
 

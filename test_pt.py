@@ -3,7 +3,7 @@
 """
 Example script to demonstrate a payment process.
 """
-from ecrterm.ecr import ECR, ecr_log
+from ecrterm.ecr import ECR
 from ecrterm.packets.types import ConfigByte
 
 
