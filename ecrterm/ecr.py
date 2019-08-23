@@ -10,19 +10,19 @@ import logging
 from time import sleep
 
 from ecrterm.common import TERMINAL_STATUS_CODES
-from ecrterm.conv import bs2hl, toBytes, toHexString
+from ecrterm.conv import toBytes
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException)
 from ecrterm.packets.base_packets import (
-    Authorisation, Completion, DisplayText, EndOfDay, Packet, PrintLine,
-    Registration, ResetTerminal, StatusEnquiry, StatusInformation, WriteFiles)
-from ecrterm.transmission._transmission import Transmission
+    Authorisation, CloseCardSession, Completion, DisplayText, EndOfDay, Packet,
+    PrintLine, ReadCard, Registration, ResetTerminal, StatusEnquiry,
+    StatusInformation, WriteFiles)
 from ecrterm.packets.types import ConfigByte
+from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
 from ecrterm.transmission.transport_socket import SocketTransport
 from ecrterm.utils import detect_pt_serial, is_stringlike
-
 
 logger = logging.getLogger('ecrterm.ecr')
 
@@ -368,6 +368,14 @@ class ECR(object):
 
     def parse_str(self, s):
         return parse_represented_data(s)
+
+    def read_card(self, timeout=1, read_card_args={}):
+        args = dict(read_card_args)
+        args.setdefault('timeout', timeout)
+        return self.transmit(ReadCard(**args))
+
+    def close_card(self):
+        return self.transmit(CloseCardSession())
 
 
 if __name__ == '__main__':

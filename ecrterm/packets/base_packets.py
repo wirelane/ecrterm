@@ -437,6 +437,17 @@ class ReadCard(Packet):
     wait_for_completion = True  # note, we do not wait for completion actually.
 
     timeout = ByteField()
+    ALLOWED_BITMAPS = [
+        'status_byte',
+        'dialog_control',
+        'tlv',
+    ]
+
+
+class CloseCardSession(CommandAPDU):
+    CMD_CLASS = 0x06
+    CMD_INSTR = 0xC5
+    wait_for_completion = False
 
 
 class ResetTerminal(CommandAPDU):
