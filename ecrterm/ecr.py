@@ -327,7 +327,7 @@ class ECR(object):
         transmission = self.transmitter.transmit(packet)
         return transmission
 
-    def request_reservation(self, amount_cent=50, listener=None):
+    def request_reservation(self, amount_cent=50, timeout=10, listener=None):
         """
         executes a reservation request in amount of cents.
         @returns: True, if reservation went through, or False if it was canceled.
@@ -336,6 +336,7 @@ class ECR(object):
         packet = ReservationRequest(
             amount=amount_cent,  # in cents.
             currency_code=978,  # euro, only one that works, can be skipped.
+            timeout=timeout,
             tlv=[],
         )
         if listener:
