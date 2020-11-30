@@ -4,8 +4,8 @@ from typing import Dict
 
 from .apdu import CommandAPDU
 from .fields import *
-from .types import *
 from .text_encoding import ZVT_7BIT_CHARACTER_SET
+from .types import *
 
 
 class Packet(CommandAPDU):
@@ -115,6 +115,7 @@ class Kassenbericht(CommandWithPassword):
 class EndOfDay(CommandWithPassword):
     CMD_INSTR = 0x50
     wait_for_completion = True
+
 
 class LogOff(Packet):
     """06 02 Log Off"""
@@ -542,7 +543,7 @@ class WriteFiles(WriteFileBase):
 
     def get_file_content_(self, file_id: int, offset: int, length: Optional[int] = None):
         if length is not None:
-            return self._files[file_id][offset:(offset+length)]
+            return self._files[file_id][offset:(offset + length)]
         else:
             return self._files[file_id][offset:]
 
@@ -559,10 +560,26 @@ class ReservationRequest(Authorisation):
     CMD_INSTR = 0x22
 
 
-class ReservationBooking(Packet):
+class ReservationPartialReversal(Packet):
+    """
+    06 23
+    This command executes a Partial-Reversal for a Pre-Authorisation to release the unused amount of the reservation.
+    This command is also used for the Booking of a Reservation.
+    """
+    CMD_CLASS = 0x06
+    CMD_INSTR = 0x23
+    wait_for_completion = True
+
+    ALLOWED_BITMAPS = [
+        'receipt', 'amount', 'currency_code', 'additional', 'trace_number',
+        'aid', 'tlv']
+
+
+class ReservationBookTotal(Packet):
     """
     06 24
-    If you want to book a reservation, this is the packet you need to start with.
+    This command executes booking of the total amount for a Pre-Authorisation / Reservation (06 22).
+    The portion of the amount from the Pre-Authorisation / Reservation (06 22) that was used up is booked.
     """
     CMD_CLASS = 0x06
     CMD_INSTR = 0x24

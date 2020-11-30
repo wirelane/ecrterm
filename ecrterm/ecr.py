@@ -15,9 +15,9 @@ from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException)
 from ecrterm.packets.base_packets import (
     Authorisation, CloseCardSession, Completion, DisplayText, EndOfDay, Packet,
-    PrintLine, ReadCard, Registration, ReservationBooking, ReservationRequest,
-    ResetTerminal, StatusEnquiry, StatusInformation, WriteFiles)
-from ecrterm.packets.types import ConfigByte
+    PrintLine, ReadCard, Registration, ReservationBookTotal, ReservationPartialReversal,
+    ReservationRequest, ResetTerminal, StatusEnquiry, StatusInformation, WriteFiles)
+from ecrterm.packets.types import (ConfigByte, CurrencyCode)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
@@ -134,6 +134,7 @@ class ECR(object):
     def __get_last(self):
         if self.transmitter is not None:
             return self.transmitter.last
+
     # !: Last is a short access for transmitter.last if possible.
     last = property(__get_last)
 
@@ -154,7 +155,7 @@ class ECR(object):
             # get the terminal-id if its there.
             for inc, packet in self.transmitter.last_history:
                 if inc and isinstance(packet, Completion):
-                    self.terminal_id = packet.as_dict().get('tid', '00'*4)
+                    self.terminal_id = packet.as_dict().get('tid', '00' * 4)
             # remember this.
             self._state_registered = True
         return ret
@@ -233,7 +234,7 @@ class ECR(object):
         """
         packet = Authorisation(
             amount=amount_cent,  # in cents.
-            currency_code=978,  # euro, only one that works, can be skipped.
+            currency_code=CurrencyCode.EUR,  # euro, only one that works, can be skipped.
             tlv=[],
         )
         if listener:
@@ -335,8 +336,36 @@ class ECR(object):
         """
         packet = ReservationRequest(
             amount=amount_cent,  # in cents.
-            currency_code=978,  # euro, only one that works, can be skipped.
+            currency_code=CurrencyCode.EUR,  # euro, only one that works, can be skipped.
             timeout=timeout,
+            tlv=[],
+        )
+        if listener:
+            packet.register_response_listener(listener)
+        code = self.transmit(packet=packet)
+
+        if code == 0:
+            # now check if the packet actually got what it wanted.
+            if self.transmitter.last.completion:
+                if isinstance(self.transmitter.last.completion, Completion):
+                    return True
+            else:
+                return False
+        else:
+            # @todo: remove this.
+            logger.error("transmit error?")
+        return False
+
+    def reverse_reservation(self, receipt_no, amount_cent=50, listener=None):
+        """
+        executes a reservation reversal for receipt with unused amount in cents.
+        @returns: True, if reversal went through, or False if it was canceled.
+        throws exceptions.
+        """
+        packet = ReservationPartialReversal(
+            receipt=receipt_no,
+            amount=amount_cent,
+            currency_code=CurrencyCode.EUR,
             tlv=[],
         )
         if listener:
@@ -357,14 +386,14 @@ class ECR(object):
 
     def book_reservation(self, receipt_no, amount_cent=50, listener=None):
         """
-        executes a reservation booking for receipt with cancel amount in cents.
+        executes a reservation booking for receipt with used amount in cents.
         @returns: True, if booking went through, or False if it was canceled.
         throws exceptions.
         """
-        packet = ReservationBooking(
+        packet = ReservationBookTotal(
             receipt=receipt_no,
             amount=amount_cent,
-            currency_code=978,
+            currency_code=CurrencyCode.EUR,
             tlv=[],
         )
         if listener:
