@@ -328,7 +328,7 @@ class ECR(object):
         transmission = self.transmitter.transmit(packet)
         return transmission
 
-    def request_reservation(self, amount_cent=50, timeout=10, listener=None):
+    def request_reservation(self, amount_cent=50, timeout=10, listener=None, tlv=[]):
         """
         executes a reservation request in amount of cents.
         @returns: True, if reservation went through, or False if it was canceled.
@@ -338,7 +338,7 @@ class ECR(object):
             amount=amount_cent,  # in cents.
             currency_code=CurrencyCode.EUR,  # euro, only one that works, can be skipped.
             timeout=timeout,
-            tlv=[],
+            tlv=tlv,
         )
         if listener:
             packet.register_response_listener(listener)
@@ -356,7 +356,7 @@ class ECR(object):
             logger.error("transmit error?")
         return False
 
-    def reverse_reservation(self, receipt_no, amount_cent=50, listener=None):
+    def reverse_reservation(self, receipt_no, amount_cent=50, listener=None, tlv=[]):
         """
         executes a reservation reversal for receipt with unused amount in cents.
         @returns: True, if reversal went through, or False if it was canceled.
@@ -366,7 +366,7 @@ class ECR(object):
             receipt=receipt_no,
             amount=amount_cent,
             currency_code=CurrencyCode.EUR,
-            tlv=[],
+            tlv=tlv,
         )
         if listener:
             packet.register_response_listener(listener)
@@ -384,7 +384,7 @@ class ECR(object):
             logger.error("transmit error?")
         return False
 
-    def book_reservation(self, receipt_no, amount_cent=50, listener=None):
+    def book_reservation(self, receipt_no, amount_cent=50, listener=None, tlv=[]):
         """
         executes a reservation booking for receipt with used amount in cents.
         @returns: True, if booking went through, or False if it was canceled.
@@ -394,7 +394,7 @@ class ECR(object):
             receipt=receipt_no,
             amount=amount_cent,
             currency_code=CurrencyCode.EUR,
-            tlv=[],
+            tlv=tlv,
         )
         if listener:
             packet.register_response_listener(listener)
