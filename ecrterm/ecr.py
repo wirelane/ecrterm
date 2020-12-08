@@ -14,9 +14,9 @@ from ecrterm.conv import toBytes
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException)
 from ecrterm.packets.base_packets import (
-    Authorisation, CloseCardSession, Completion, DisplayText, EndOfDay, Packet,
+    Authorisation, CloseCardSession, Completion, DisplayText, EndOfDay, Initialisation, Packet,
     PrintLine, ReadCard, Registration, ReservationBookTotal, ReservationPartialReversal,
-    ReservationRequest, ResetTerminal, StatusEnquiry, StatusInformation, WriteFiles)
+    ReservationRequest, ResetTerminal, SetTerminalID, StatusEnquiry, StatusInformation, WriteFiles)
 from ecrterm.packets.types import (ConfigByte, CurrencyCode)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
@@ -328,7 +328,7 @@ class ECR(object):
         transmission = self.transmitter.transmit(packet)
         return transmission
 
-    def request_reservation(self, amount_cent=50, timeout=10, listener=None, tlv=[]):
+    def request_reservation(self, amount_cent=50, timeout=10, tlv=[], listener=None):
         """
         executes a reservation request in amount of cents.
         @returns: True, if reservation went through, or False if it was canceled.
@@ -340,23 +340,10 @@ class ECR(object):
             timeout=timeout,
             tlv=tlv,
         )
-        if listener:
-            packet.register_response_listener(listener)
-        code = self.transmit(packet=packet)
 
-        if code == 0:
-            # now check if the packet actually got what it wanted.
-            if self.transmitter.last.completion:
-                if isinstance(self.transmitter.last.completion, Completion):
-                    return True
-            else:
-                return False
-        else:
-            # @todo: remove this.
-            logger.error("transmit error?")
-        return False
+        return self._send_packet(packet, listener)
 
-    def reverse_reservation(self, receipt_no, amount_cent=50, listener=None, tlv=[]):
+    def reverse_reservation(self, receipt_no, amount_cent=50, tlv=[], listener=None):
         """
         executes a reservation reversal for receipt with unused amount in cents.
         @returns: True, if reversal went through, or False if it was canceled.
@@ -368,23 +355,10 @@ class ECR(object):
             currency_code=CurrencyCode.EUR,
             tlv=tlv,
         )
-        if listener:
-            packet.register_response_listener(listener)
-        code = self.transmit(packet=packet)
 
-        if code == 0:
-            # now check if the packet actually got what it wanted.
-            if self.transmitter.last.completion:
-                if isinstance(self.transmitter.last.completion, Completion):
-                    return True
-            else:
-                return False
-        else:
-            # @todo: remove this.
-            logger.error("transmit error?")
-        return False
+        return self._send_packet(packet, listener)
 
-    def book_reservation(self, receipt_no, amount_cent=50, listener=None, tlv=[]):
+    def book_reservation(self, receipt_no, amount_cent=50, tlv=[], listener=None):
         """
         executes a reservation booking for receipt with used amount in cents.
         @returns: True, if booking went through, or False if it was canceled.
@@ -396,6 +370,40 @@ class ECR(object):
             currency_code=CurrencyCode.EUR,
             tlv=tlv,
         )
+
+        return self._send_packet(packet, listener)
+
+    def set_terminal_id(self, terminal_id=None, listener=None):
+        """
+        Set the terminal id for the PT, needs an initialize afterwards.
+        @returns: True, if configuration went through, or False if it was invalid.
+        throws exceptions.
+        """
+        packet = SetTerminalID(
+            password=self.password,
+            tid=terminal_id,
+        )
+
+        return self._send_packet(packet, listener)
+
+    def initialize(self, listener=None):
+        """
+        Initialize the PT, needed after configuration change.
+        @returns: True, if initialize went through, or False if it was invalid.
+        throws exceptions.
+        """
+        packet = Initialisation(
+            password=self.password
+        )
+
+        return self._send_packet(packet, listener)
+
+    def _send_packet(self, packet, listener=None):
+        """
+        Generic method to send packets and check for completion status.
+        @returns: True, if packet went through, or False if it failed.
+        throws exceptions.
+        """
         if listener:
             packet.register_response_listener(listener)
         code = self.transmit(packet=packet)
