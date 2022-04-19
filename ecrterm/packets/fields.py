@@ -1,13 +1,15 @@
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
-from .tlv import TLV, TLVDictionary, ContainerType
-from .types import CharacterSet, VendorQuirks, CardholderIdentification, OnlineTag, FileID
 from .context import CurrentContext
 from .text_encoding import encode, decode
+from .tlv import TLV, TLVDictionary, ContainerType
+from .types import CharacterSet, VendorQuirks, CardholderIdentification, OnlineTag
+
 
 class ParseError(Exception):
     pass
+
 
 class Endianness(Enum):
     BIG_ENDIAN = 3210
@@ -123,7 +125,7 @@ class IntField(Field):
     DATA_TYPE = int
 
     def to_bytes(self, v: int, length: Optional[int] = None) -> bytes:
-        length = length if length is not None else (self.length if self.length is not None else self.LENGTH)
+        length = length if length is not None else self.LENGTH
         if length is None:
             raise ValueError("Need to specify length for IntField serialization")
 
@@ -169,11 +171,13 @@ class StringField(BytesField):
         super().__init__(*args, **kwargs)
 
     def from_bytes(self, v: Union[bytes, List[int]]) -> str:
-        character_set = self._character_set if self._character_set is not None else CurrentContext.get('character_set', CharacterSet.DEFAULT)
+        character_set = self._character_set if self._character_set is not None \
+            else CurrentContext.get('character_set', CharacterSet.DEFAULT)
         return decode(bytes(v), character_set)
 
     def to_bytes(self, v: str, length: int = None) -> bytes:
-        character_set = self._character_set if self._character_set is not None else CurrentContext.get('character_set', CharacterSet.DEFAULT)
+        character_set = self._character_set if self._character_set is not None \
+            else CurrentContext.get('character_set', CharacterSet.DEFAULT)
         retval = encode(v, character_set)
 
         if length:
@@ -212,7 +216,7 @@ class BCDVariableLengthField(Field):
             raise ValueError("BCD field contents can only be numeric")
 
         if len(v) % 2 != 0:
-            v = '0'+v
+            v = '0' + v
 
         return bytes(bytearray.fromhex(v))
 
@@ -250,7 +254,7 @@ class BCDIntField(BCDField):
     def to_bytes(self, v: int, length: Optional[int] = None) -> bytes:
         length = length if length is not None else (self.length if self.length is not None else self.LENGTH)
         v = str(int(v))
-        return super().to_bytes(v.rjust(length*2, '0'), length)
+        return super().to_bytes(v.rjust(length * 2, '0'), length)
 
     def coerce(self, data: Any) -> int:
         if isinstance(data, str):
@@ -285,7 +289,9 @@ class TLVField(Field):
         return v.serialize()
 
     def parse(self, data: Union[bytes, List[int]]) -> Tuple[TLV, bytes]:
-        return TLV.parse(data, empty_tag=True, dictionary='feig_zvt' if VendorQuirks.FEIG_CVEND in CurrentContext.get('vendor_quirks', set()) else 'zvt')
+        return TLV.parse(
+            data, empty_tag=True,
+            dictionary='feig_zvt' if VendorQuirks.FEIG_CVEND in CurrentContext.get('vendor_quirks', set()) else 'zvt')
 
     def serialize(self, data: TLV) -> bytes:
         return data.serialize()
@@ -312,6 +318,10 @@ TLVDictionary.register(
         0x1F40: StringField(name="device_name", character_set=CharacterSet.ASCII_7BIT),
         0x1F41: StringField(name="software_version", character_set=CharacterSet.ASCII_7BIT),
         0x1F42: BCDVariableLengthField(name="serial_number"),
+        0x1F43: ByteField(name="device_state"),
+        0x1F44: BCDField(name="terminal_identifier", length=4),
+        0x1F0E: BCDField(name='date', length=4),
+        0x1F0F: BCDField(name='time', length=3),
         0x2f: ContainerType(name="payment_type"),
     }
 )
@@ -320,5 +330,6 @@ TLVDictionary.child(
     'feig_zvt', 'zvt', {
         0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.UTF8),
         0xFF40: PasswordField(name="service_password"),
+        0xFF48: BCDField(name="screensaver_timeout", length=2),
     }
 )
