@@ -268,6 +268,10 @@ class BCDIntField(BCDField):
 class BEIntField(IntField, FixedLengthField):
     ENDIAN = Endianness.BIG_ENDIAN
 
+    def to_bytes(self, v: int, length: Optional[int] = None) -> bytes:
+        length = length if length is not None else (self.length if self.length is not None else self.LENGTH)
+        return super().to_bytes(v=v, length=length)
+
 
 class LLStringField(LLVARField, StringField):
     pass
@@ -330,6 +334,7 @@ TLVDictionary.child(
     'feig_zvt', 'zvt', {
         0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.UTF8),
         0xFF40: PasswordField(name="service_password"),
-        0xFF48: BCDField(name="screensaver_timeout", length=2),
+        # 1st byte: screensaver-timeout in minutes (0-255), 2nd byte: screensaver-type (0: black, 1: graphics)
+        0xFF48: BCDField(name="screensaver_timeout_and_type", length=2),
     }
 )
