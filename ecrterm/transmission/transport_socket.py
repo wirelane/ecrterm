@@ -1,5 +1,4 @@
 import logging
-from functools import partial
 from binascii import hexlify
 from socket import (
     IPPROTO_TCP, SHUT_RDWR, SO_KEEPALIVE, SOL_SOCKET, create_connection)
@@ -13,7 +12,6 @@ from ecrterm.common import Transport
 from ecrterm.exceptions import (
     TransportConnectionFailed, TransportLayerException,
     TransportTimeoutException)
-from ecrterm.transmission.signals import TIMEOUT_T2
 
 if platform == 'linux':
     from socket import TCP_KEEPIDLE, TCP_KEEPINTVL
@@ -23,7 +21,6 @@ try:
     from socket import TCP_KEEPCNT
 except ImportError:
     TCP_KEEPCNT = None
-
 
 logger = logging.getLogger('ecrterm.transport.socket')
 
@@ -54,9 +51,8 @@ class SocketTransport(Transport):
         """Setup the IP and Port."""
         parsed = urlsplit(url=uri)
         if ':' not in parsed.netloc:
-            raise AttributeError(
-                'uri needs an IP and a port with : separated.')
-        self.ip, port = parsed.netloc.split(':')
+            raise AttributeError('uri needs an IP and a port with : separated.')
+        self.ip, port = parsed.netloc.rsplit(':', 1)
         self.port = int(port)
         qs_parsed = parse_qs(qs=parsed.query)
         self.connect_timeout = int(qs_parsed.get(
@@ -74,7 +70,7 @@ class SocketTransport(Transport):
         self._packetdebug = qs_parsed.get(
             'packetdebug', [self.defaults['packetdebug']])[0] == 'true'
 
-    def connect(self, timeout: int=None) -> bool:
+    def connect(self, timeout: int = None) -> bool:
         """
         Connect to the TCP socket. Return `True` on successful
         connection, `False` on an unsuccessful one.
@@ -90,7 +86,7 @@ class SocketTransport(Transport):
             if self.tcp_keepidle and platform == 'linux':
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPIDLE, self.tcp_keepidle)
-            if self.tcp_keepintvl and platform in set(['linux', 'darwin']):
+            if self.tcp_keepintvl and platform in {'linux', 'darwin'}:
                 self.sock.setsockopt(
                     IPPROTO_TCP, TCP_KEEPINTVL, self.tcp_keepintvl)
             if self.tcp_keepcnt and TCP_KEEPCNT:
@@ -100,7 +96,7 @@ class SocketTransport(Transport):
         except (ConnectionError, SocketTimeout) as exc:
             raise TransportConnectionFailed(exc.args[0])
 
-    def send(self, data: bytes, tries: int=0, no_wait: bool=False):
+    def send(self, data: bytes, tries: int = 0, no_wait: bool = False):
         """Send data."""
         logger.debug('>> %s', data.hex())
         total_sent = 0
@@ -150,7 +146,7 @@ class SocketTransport(Transport):
         data += length
         return data, unpack('<H', length)[0]
 
-    def _receive(self, timeout=TIMEOUT_T2) -> bytes:
+    def _receive(self) -> bytes:
         """
         Receive the response from the terminal and return is as `bytes`.
         """
