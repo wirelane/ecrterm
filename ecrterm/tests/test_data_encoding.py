@@ -16,18 +16,20 @@ erzeugen.
 from unittest import TestCase, main
 
 from ecrterm.conv import toHexString
+from ecrterm.packets.apdu import APDU
 from ecrterm.packets.base_packets import (
     Authorisation, Diagnosis, DisplayText, Initialisation, PacketReceived,
     PacketReceivedError, PrintLine, Registration, ResetTerminal, StatusEnquiry, ReadCard)
-from ecrterm.transmission.signals import ACK, NAK
+from ecrterm.transmission.signals import ACK, NAK, DLE, ETX, STX
 from ecrterm.transmission.transport_serial import SerialMessage
 
 
-def list_of_bytes(apdu):
-    sm = SerialMessage(apdu)
-    byte_list = sm.dump_message()
-    # return " ".join(["%02h" % i for i in byte_list])
-    return toHexString(byte_list)
+def list_of_bytes(apdu: APDU):
+    data = apdu.serialize()
+    message = SerialMessage(data)
+    # Note: this is the encoding used for serial transport. @see SerialTransport.send_message()
+    return toHexString(list(bytearray(bytes([DLE, STX]) + data.replace(bytes([DLE]), bytes([DLE, DLE]))
+                                      + bytes([DLE, ETX, message.crc_l, message.crc_h]))))
 
 
 class TestCaseDataEncoding(TestCase):

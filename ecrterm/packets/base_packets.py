@@ -489,21 +489,25 @@ class RequestFile(Packet):
     CMD_INSTR = 0x0c
 
 
-class WriteFileBase(CommandWithPassword):
+class WriteFiles(CommandWithPassword):
     CMD_CLASS = 0x08
     CMD_INSTR = 0x14
     wait_for_completion = True
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, files: Dict[int, bytes] = None, *args, **kwargs):
+        self._files = {} if files is None else files
         super().__init__(*args, **kwargs)
         for k, v in self.get_files_().items():
             self.tlv.append_('x2d', {'x1d': bytes([k]), 'x1f00': struct.pack('!L', v)}, overwrite=False)
 
     def get_files_(self) -> Dict[int, int]:
-        raise NotImplementedError
+        return {k: len(v) for (k, v) in self._files.items()}
 
     def get_file_content_(self, file_id: int, offset: int, length: Optional[int] = None):
-        raise NotImplementedError
+        if length is not None:
+            return self._files[file_id][offset:(offset + length)]
+        else:
+            return self._files[file_id][offset:]
 
     def _handle_super_response(self, response, tm):
         if isinstance(response, RequestFile):
@@ -531,21 +535,6 @@ class WriteFileBase(CommandWithPassword):
                 0x1e: struct.pack('!L', offset),
                 0x1c: data,
             }})
-
-
-class WriteFiles(WriteFileBase):
-    def __init__(self, files: Dict[int, bytes] = None, *args, **kwargs):
-        self._files = files
-        super().__init__(*args, **kwargs)
-
-    def get_files_(self) -> Dict[int, int]:
-        return {k: len(v) for (k, v) in self._files.items()}
-
-    def get_file_content_(self, file_id: int, offset: int, length: Optional[int] = None):
-        if length is not None:
-            return self._files[file_id][offset:(offset + length)]
-        else:
-            return self._files[file_id][offset:]
 
     @classmethod
     def can_parse(cls, data: Union[bytes, List[int]]) -> bool:

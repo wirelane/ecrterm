@@ -102,7 +102,7 @@ def toBytes(bytestring):
     bytestring: a byte string of the format "3B 65 00 00 9C 11 01 01 03" or
     "3B6500009C11010103" or "3B6500   009C1101  0103"
     """
-    if type(bytestring) in set([bytes, bytearray]):
+    if type(bytestring) in {bytes, bytearray}:
         return list(bytestring)
     packedstring = ''.join(re.split(r'\W+', bytestring))
     if sys.version_info[0] > 2 and isinstance(packedstring, str):
@@ -223,9 +223,6 @@ def toHexString(input_bytes=None, format=0):
             return s.rstrip(chars)
 
     input_bytes = input_bytes or []
-
-    for byte in tuple(input_bytes):
-        pass
 
     if type(input_bytes) is not list:
         raise TypeError('not a list of bytes')

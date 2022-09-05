@@ -164,6 +164,7 @@ class APDU(metaclass=FieldContainer):
     @classmethod
     def parse(cls: Type[APDUType], data: Union[bytes, List[int]]) -> APDUType:
         data = bytes(data)
+        hex_data_str = data.hex()
         # Find more appropriate subclass and use that
         if cls.AUTOMATIC_SUBCLASS:
             for clazz in cls._iterate_subclasses():
@@ -201,14 +202,14 @@ class APDU(metaclass=FieldContainer):
 
                 break
 
-            except ParseError:
+            except ParseError as e:
                 blacklist_candidates = [
                     f for f in retval.FIELDS.values()
                     if not f.required and f.ignore_parse_error and not f in blacklist
                 ]
                 if not blacklist_candidates:
                     # No more we can do, probably really a parse error
-                    raise
+                    raise ParseError(str(e) + " in data: " + hex_data_str)
                 else:
                     blacklist.append(blacklist_candidates[0])
                     continue
@@ -256,7 +257,6 @@ class APDU(metaclass=FieldContainer):
             retval.append((name, value))
 
         return retval
-
 
     def serialize(self) -> bytes:
         data = bytearray()
@@ -341,5 +341,3 @@ class ResponseAPDU(APDU):
     @resp_aprc.setter
     def resp_aprc(self, v):
         self.control_field[1] = v
-
-
