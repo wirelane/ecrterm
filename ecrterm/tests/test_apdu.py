@@ -1,7 +1,7 @@
 from ecrterm.packets.apdu import CommandAPDU, ParseError
-from ecrterm.packets.tlv import TLV
 from ecrterm.packets.fields import ByteField, BytesField, BCDIntField
-from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, Completion, PrintLine, Authorisation, WriteFileBase
+from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, PrintLine, Authorisation, \
+    WriteFiles
 from unittest import TestCase, main
 
 
@@ -141,7 +141,7 @@ class TestAPDUBitmaps(TestCase):
         self.assertRaises(AttributeError, setattr, c, 'pump_nr', 1)
 
     def test_invalid_length(self):
-        c = PrintLine(attribute=0x00, text='A'*65536)
+        c = PrintLine(attribute=0x00, text='A' * 65536)
 
         self.assertRaises(ValueError, c.serialize)
 
@@ -169,22 +169,16 @@ class TestAPDUBitmaps(TestCase):
         self.assertIsInstance(c.raw_tlv, bytes)
         self.assertEqual(b'\x02\xff\xaa', c.raw_tlv)
 
+    def test_write_file_apdu(self):
+        c = WriteFiles(password='000000',
+                       files={
+                           32: bytes(str.encode('Test 123')),
+                           33: bytes(str.encode('ä ö ü ß')),
+                       })
+        paket = c.serialize()
+        self.assertEqual(bytearray.fromhex('08141d00000006182d0a1d01201f0004000000082d0a1d01211f00040000000b'), paket)
 
     # FIXME Test TLV names
-
-
-class TestRegression(TestCase):
-    def test_write_file_apdu(self):
-        c = WriteFileBase(password='000000', tlv=[
-            (0x2d, {0x1d: 0x20, 0x1f00: 615}),
-            (0x2d, {0x1d: 0x21, 0x1f00: 3403228}),
-        ])
-        c.serialize()
-
-    def test_write_file_2(self):
-        c = CommandAPDU.parse([16, 2, 8, 20, 101, 0, 0, 0, 6, 96, 45, 10, 29, 1, 48, 31, 0, 4, 0, 0, 2, 103, 45, 10, 29, 1, 49, 31, 0, 4, 0, 0, 0, 231, 45, 10, 29, 1, 33, 31, 0, 4, 0, 59, 48, 18, 45, 10, 29, 1, 32, 31, 0, 4, 0, 0, 2, 103, 45, 10, 29, 1, 16, 16, 31, 0, 4, 0, 41, 58, 67, 45, 10, 29, 1, 17, 31, 0, 4, 0, 180, 5, 108, 45, 10, 29, 1, 18, 31, 0, 4, 0, 0, 3, 57, 45, 10, 29, 1, 19, 31, 0, 4, 0, 0, 6, 2, 16, 3, 185, 57])
-        self.assertIsInstance(c, WriteFileBase)
-
 
 
 if __name__ == '__main__':

@@ -3,10 +3,11 @@ Incoming Packets should be always parsable.
 this test tries to look at the parser in detail.
 """
 from logging import info
-from unittest import TestCase, main, expectedFailure
+from unittest import TestCase, main
 
 from ecrterm.ecr import parse_represented_data
 from ecrterm.packets.base_packets import Completion, Packet
+from ecrterm.packets.fields import ParseError
 from ecrterm.packets.types import CharacterSet
 from ecrterm.packets.text_encoding import ZVT_7BIT_CHARACTER_SET
 from ecrterm.packets.context import enter_context
@@ -17,8 +18,7 @@ class TestParsingMechanisms(TestCase):
     def test_version_completion(self):
         # following completion is sent by the PT with version on
         # statusenquiry:
-        data_expected = \
-            '10 02 06 0F 0B F0 F0 F7 32 2E 31 34 2E 31 35 00 10 03 B1 11'
+        data_expected = '10 02 06 0F 0B F0 F0 F7 32 2E 31 34 2E 31 35 00 10 03 B1 11'
         # small test to test the completion with software version to be
         # recognized.
         rep = parse_represented_data(data_expected)
@@ -109,6 +109,16 @@ class TestParsingMechanisms(TestCase):
             p = parse_represented_data(packet)
 
         self.assertEqual('Test ä ö ü ß', p.text)
+
+    def test_invalid_bitmap_parse_error_includes_full_hex_data(self):
+        packet = '1628201010006964510291483104002103451029149310400023145102913331040594818451029132310400210345102911616310404158674510291173104018051084510291183104003574510291193104006216318557'
+
+        with self.assertRaises(ParseError) as context:
+            parse_represented_data(packet)
+
+        self.assertTrue(
+            'Invalid bitmap 0x10 in data: 1628201010006964510291483104002103451029149310400023145102913331040594818451029132310400210345102911616310404158674510291173104018051084510291183104003574510291193104006216318557'
+            in str(context.exception))
 
 
 if __name__ == '__main__':
