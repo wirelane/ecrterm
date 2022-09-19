@@ -6,9 +6,11 @@ import logging
 
 from ecrterm.exceptions import TransmissionException, TransportLayerException
 from ecrterm.packets.base_packets import PacketReceived, Packet
+from ecrterm.packets.fields import ParseError
 from ecrterm.transmission.signals import TIMEOUT_T4_DEFAULT, TRANSMIT_OK
 
 logger = logging.getLogger('ecrterm.transmission')
+
 
 class Transmission(object):
     """
@@ -52,8 +54,8 @@ class Transmission(object):
         sequence is finished.
         """
         if not self.is_master or self.is_waiting:
-            raise TransmissionException(
-                'Can\'t send until transmisson is ready')
+            raise TransmissionException('Can\'t send until transmission is ready')
+
         self.is_master = False
         self.last = packet
         try:
@@ -63,33 +65,32 @@ class Transmission(object):
             response = Packet.parse(response)
             logger.debug("< %r", response)
             history += [(True, response)]
-            # we sent the packet.
-            # now lets wait until we get master back.
+
+            # we sent the packet - now lets wait until we get master back
             while not self.is_master:
-                self.is_master = self.handle_packet_response(
-                    self.last, response)
+                self.is_master = self.handle_packet_response(self.last, response)
                 if self.is_master:
                     break
                 try:
-                    success, response = self.transport.receive(
-                        self.actual_timeout)
+                    success, response = self.transport.receive(self.actual_timeout)
                     response = Packet.parse(response)
                     logger.debug("< %r", response)
                     history += [(True, response)]
                 except TransportLayerException:
-                    # some kind of timeout.
-                    # if we are already master, we can bravely ignore this.
+                    # some kind of timeout - if we are already master, we can bravely ignore this
                     if self.is_master:
                         return TRANSMIT_OK
                     raise
                 if self.is_master and success:
                     # we actually have to handle a last packet
-                    stay_master = self.handle_packet_response(
-                        packet, response)
+                    stay_master = self.handle_packet_response(packet, response)
                     logger.warning('Is Master Read Ahead happened.')
                     self.is_master = stay_master
         except Exception as e:
             self.is_master = True
+            # add request data to exception message in case of a ParseError for a response to help with debugging
+            if isinstance(e, ParseError):
+                raise ParseError(str(e) + " request data: " + packet.serialize().hex())
             raise
         self.is_master = True
         return TRANSMIT_OK
