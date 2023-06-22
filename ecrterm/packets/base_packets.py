@@ -193,6 +193,17 @@ class Completion(Packet):
 
     ALLOWED_BITMAPS = ['tlv', 'status_byte', 'tid', 'currency_code']
 
+    def get_serial_number(self):
+        serial_number = None
+        tlv = self.get('tlv')
+        if tlv is not None:
+            device_information = tlv.get_value('xE4', [])
+            for item in device_information:
+                if item.tag_ == 0x1F42:
+                    serial_number = item.value_
+
+        return serial_number
+
 
 class Abort(Packet):
     """
@@ -205,6 +216,22 @@ class Abort(Packet):
 
     result_code = ByteField()
     # FIXME error_code
+
+    def get_receipt_numbers(self) -> List[str]:
+        receipt_numbers = []
+        if self.get('receipt') is not None and self.get('receipt') != 'ffff':
+            receipt_numbers.append(self.get('receipt'))
+
+        tlv = self.get('tlv')
+        if tlv is not None:
+            receipt_numbers_tlv_list = tlv.get_value('x23', [])
+            for receipt_number_tlv in receipt_numbers_tlv_list:
+                if receipt_number_tlv.tag_ == 8 \
+                        and receipt_number_tlv.value_ != 'ffff' \
+                        and receipt_number_tlv.value_ not in receipt_numbers:
+                    receipt_numbers.append(receipt_number_tlv.value_)
+
+        return receipt_numbers
 
 
 class StatusInformation(Packet):
@@ -562,6 +589,20 @@ class ReservationPartialReversal(Packet):
     ALLOWED_BITMAPS = [
         'receipt', 'amount', 'currency_code', 'additional', 'trace_number',
         'aid', 'tlv']
+
+
+class OpenReservationsEnquiry(Packet):
+    """
+    06 23 03 87 FF FF
+    """
+    CMD_CLASS = 0x06
+    CMD_INSTR = 0x23
+    wait_for_completion = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **dict(kwargs, receipt='FFFF'))
+
+    ALLOWED_BITMAPS = ['receipt']
 
 
 class ReservationBookTotal(Packet):
