@@ -1,7 +1,7 @@
 from ecrterm.packets.apdu import CommandAPDU, ParseError
 from ecrterm.packets.fields import ByteField, BytesField, BCDIntField
 from ecrterm.packets.base_packets import LogOff, Initialisation, Registration, DisplayText, PrintLine, Authorisation, \
-    WriteFiles
+    WriteFiles, OpenReservationsEnquiry
 from unittest import TestCase, main
 
 
@@ -162,6 +162,11 @@ class TestAPDUBitmaps(TestCase):
         c2 = Authorisation()
         c2.tlv.xf2.xc1 = b'\x12\x23'
         self.assertEqual(bytearray.fromhex('0601080606f204c1021223'), c2.serialize())
+
+    def test_create_open_reservations_enquiry_packet(self):
+        packet = OpenReservationsEnquiry()
+
+        self.assertEqual(bytearray.fromhex('06230387FFFF'), packet.serialize())
 
     def test_override_bitmaps(self):
         c = CommandAPDU.parse(bytearray.fromhex('ffaa040602ffaa'))

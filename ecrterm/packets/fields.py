@@ -1,3 +1,4 @@
+import string
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
@@ -25,7 +26,7 @@ class Field:
         self.ignore_parse_error = ignore_parse_error
         self.data_type = data_type or self.DATA_TYPE
         self.name = name  # Only used in TLV
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     def from_bytes(self, v: Union[bytes, List[int]]) -> Any:
         return v
@@ -81,7 +82,8 @@ class FixedLengthField(Field):
 
     def validate(self, data: Any) -> None:
         if len(self.to_bytes(data)) != self.length:
-            raise ValueError("Field must be exactly {} bytes long".format(self.length))
+            raise ValueError("Field must be exactly {} bytes long (got {} bytes)"
+                             .format(self.length, len(self.to_bytes(data))))
 
 
 class LVARField(Field):
@@ -212,8 +214,9 @@ class BCDVariableLengthField(Field):
         return bytearray(v).hex()
 
     def to_bytes(self, v: str, length: Optional[int] = None) -> bytes:
-        if not v.isdigit():
-            raise ValueError("BCD field contents can only be numeric")
+        # Note: we need to allow pseudo-tetrades - e.g. for open reservation enquiry (06 23 03 87 FF FF)
+        if any(x not in string.hexdigits for x in v):
+            raise ValueError("BCD field contents can only be hexdigits")
 
         if len(v) % 2 != 0:
             v = '0' + v
@@ -222,8 +225,9 @@ class BCDVariableLengthField(Field):
 
     def validate(self, data: str) -> None:
         super().validate(data)
-        if not str(data).isdigit():
-            raise ValueError("BCD field contents can only be numeric")
+        # Note: we need to allow pseudo-tetrades - e.g. for open reservation enquiry (06 23 03 87 FF FF)
+        if any(x not in string.hexdigits for x in data):
+            raise ValueError("BCD field contents can only be hexdigits")
 
 
 class BCDField(BCDVariableLengthField, FixedLengthField):
@@ -311,10 +315,13 @@ TLVDictionary.register(
     'zvt', {
         None: BytesField(),
         0x07: StringField(name="text_line"),
+        0x08: BCDField(name='receipt', length=2),
         0x14: FlagByteField(name="character_set", data_type=CharacterSet),
         0x15: StringField(name="language_code", character_set=CharacterSet.ASCII_7BIT),
+        0x23: ContainerType(name='receipt-numbers'),
         0x1d: BEIntField(name='file_id', length=1),
         0x1e: BEIntField(name='start_position', length=4),
+        0x40: BytesField(name='emv_config'),
         0x1f00: BEIntField(name='file_size', length=4),
         0x1f10: FlagByteField(name="cardholder_identification", data_type=CardholderIdentification),
         0x1f11: FlagByteField(name='online_tag', data_type=OnlineTag),

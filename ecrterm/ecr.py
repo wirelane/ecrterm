@@ -7,6 +7,7 @@ Maybe create a small console program which allows us to:
 - ability for incoming and outgoing
 """
 import logging
+import string
 from time import sleep
 
 from ecrterm.common import TERMINAL_STATUS_CODES
@@ -16,7 +17,8 @@ from ecrterm.exceptions import (
 from ecrterm.packets.base_packets import (
     Authorisation, CloseCardSession, Completion, DisplayText, EndOfDay, Initialisation, Packet,
     PrintLine, ReadCard, Registration, ReservationBookTotal, ReservationPartialReversal,
-    ReservationRequest, ResetTerminal, SetTerminalID, StatusEnquiry, StatusInformation, WriteFiles)
+    ReservationRequest, ResetTerminal, SetTerminalID, StatusEnquiry, StatusInformation, WriteFiles,
+    OpenReservationsEnquiry)
 from ecrterm.packets.types import (ConfigByte, CurrencyCode)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
@@ -98,6 +100,7 @@ class ECR(object):
     MAX_TEXT_LINES = 4
     _state_registered = None
     _state_connected = None
+    _status = None
 
     def __init__(self, device='/dev/ttyUSB0', password='123456'):
         """
@@ -310,6 +313,8 @@ class ECR(object):
                 # try to get version
                 if not self.version:
                     self.version = self.last.completion.get('sw_version', None)
+
+                self._status = self.last.completion.terminal_status
                 return self.last.completion.status_byte
             # no completion means some error.
         return False
@@ -355,6 +360,21 @@ class ECR(object):
             currency_code=CurrencyCode.EUR,
             tlv=tlv,
         )
+
+        return self._send_packet(packet, listener)
+
+    def get_open_reservations(self, listener=None):
+        """
+        Fetches the receipt-number of the first pre-authorisation not yet reversed by a partial-reversal / book total.
+        Note: The receipt-number is returned in an Abort package (06 1E).
+        If no open reservation exist in the PT, ‘FFFF’ is returned as receipt-number.
+
+        Instead of a single receipt-number the PT can also transmit a receipt-number list as a TLV-container.
+        However, for this the ECR must have sent a BMP 06 in the triggering command or in the registration.
+
+        @returns: True on success, False on failure
+        """
+        packet = OpenReservationsEnquiry()
 
         return self._send_packet(packet, listener)
 
@@ -469,6 +489,9 @@ class ECR(object):
 
     def close_card(self):
         return self.transmit(CloseCardSession())
+
+    def get_human_readable_status(self) -> string:
+        return TERMINAL_STATUS_CODES.get(self._status, 'Unknown Status')
 
 
 if __name__ == '__main__':

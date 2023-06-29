@@ -1,6 +1,6 @@
 import string
 from enum import IntEnum
-from typing import Union, Tuple, TypeVar, Type, List, Dict, Tuple, Any, Optional
+from typing import Union, TypeVar, Type, List, Dict, Tuple, Any, Optional
 from .context import CurrentContext, enter_context
 from .types import VendorQuirks
 
@@ -22,8 +22,9 @@ class NotProvided:
 
 NOT_PROVIDED = NotProvided()
 
-
-_FIRST_PARAM_TYPE = Union[NotProvided, TLVType, Tuple[Union[TLVType, List, Tuple]], List[Union[TLVType, List, Tuple]], Dict[Union[int, str], Any]]
+_FIRST_PARAM_TYPE = Union[
+    NotProvided, TLVType, Tuple[Union[TLVType, List, Tuple]], List[Union[TLVType, List, Tuple]], Dict[
+        Union[int, str], Any]]
 
 
 class TLV:
@@ -74,6 +75,7 @@ class TLV:
                 length = length >> 8
             retval.append(0x80 | len(retval))
             return bytes(reversed(retval))
+
     # </editor-fold>
 
     def __new__(cls: Type[TLVType], constructed_value_: _FIRST_PARAM_TYPE = NOT_PROVIDED, *args, **kwargs):
@@ -81,7 +83,8 @@ class TLV:
             return constructed_value_
         return super().__new__(cls)
 
-    def __init__(self, constructed_value_: _FIRST_PARAM_TYPE =NOT_PROVIDED, tag_=None, value_=NOT_PROVIDED, implicit_=False, **kwargs):
+    def __init__(self, constructed_value_: _FIRST_PARAM_TYPE = NOT_PROVIDED, tag_=None, value_=NOT_PROVIDED,
+                 implicit_=False, **kwargs):
         if isinstance(constructed_value_, TLV):
             return  # __new__ handled this
 
@@ -141,6 +144,7 @@ class TLV:
 
         if not self._constructed:
             self._type = active_dictionary.get(value, active_dictionary[None])
+
     # </editor-fold>
 
     # <editor-fold desc="constructed/class accessors">
@@ -151,6 +155,7 @@ class TLV:
     @property
     def class_(self):
         return self._class
+
     # </editor-fold>
 
     # <editor-fold desc="value accessors">
@@ -165,7 +170,7 @@ class TLV:
         if value is not None:
             self._implicit = False
         if self._constructed:
-            if isinstance(value, (tuple,list)):
+            if isinstance(value, (tuple, list)):
                 self._value = []
                 for item in value:
                     if isinstance(item, TLV):
@@ -193,6 +198,7 @@ class TLV:
                 self._value = self._type.from_bytes(value)
             else:
                 self._value = value
+
     # </editor-fold>
 
     def __getattr__(self, key):
@@ -257,7 +263,7 @@ class TLV:
             raise TypeError("Cannot access items_ of primitive TLV")
         retval = []
         for v in self.value_:
-            retval.append( (v.name_, v.value_) )
+            retval.append((v.name_, v.value_))
         return retval
 
     def append_(self, key, value, overwrite=False):
@@ -298,7 +304,8 @@ class TLV:
             return bytes(retval)
 
     @classmethod
-    def parse(cls: Type[TLVType], data: bytes, empty_tag: bool = False, dictionary: Optional[str]=None) -> Tuple[TLVType, bytes]:
+    def parse(cls: Type[TLVType], data: bytes, empty_tag: bool = False, dictionary: Optional[str] = None) \
+            -> Tuple[TLVType, bytes]:
         pos = 0
 
         if empty_tag:
@@ -308,7 +315,7 @@ class TLV:
 
         length, pos = cls._read_tlv_length(data, pos)
 
-        value_ = data[pos:(pos+length)]
+        value_ = data[pos:(pos + length)]
         pos = pos + length
 
         if dictionary is not None:
@@ -332,9 +339,16 @@ class TLV:
 
         return bytes(retval) + d
 
+    def get_value(self, key, default=None):
+        for item in self.items_:
+            if item[0] == key:
+                return item[1]
+        return default
+
 
 class TLVDataType:
     name = None
+
     def __init__(self, name=None, *args, **kwargs):
         if name is not None:
             self.name = name
@@ -376,7 +390,6 @@ TLVDictionary.register(
         None: BytesData(),
     },
 )
-
 
 # FIXME store active dictionary in container
 # FIXME Tag value assignment with non-byte data
