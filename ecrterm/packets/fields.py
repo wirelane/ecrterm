@@ -91,25 +91,25 @@ class LVARField(Field):
 
     def parse(self, data: Union[bytes, List[int]]) -> Tuple[Any, bytes]:
         data = bytes(data) if not isinstance(data, bytes) else data
-        l = 0
+        length = 0
         for i in range(self.LL):
             if (data[i] & 0xF0) != 0xF0 or (data[i] & 0x0F) > 9:
                 raise ParseError("L*VAR length header invalid")
-            l = (l * 10) + (data[i] & 0x0F)
+            length = (length * 10) + (data[i] & 0x0F)
         data = data[self.LL:]
 
-        v, data = data[:l], data[l:]
+        v, data = data[:length], data[length:]
 
         return self.from_bytes(v), data
 
     def serialize(self, data: Any) -> bytes:
         data = self.to_bytes(data)
 
-        l = len(data)
-        if l >= (10 ** self.LL):
+        length = len(data)
+        if length >= (10 ** self.LL):
             raise ValueError("Data too long for L*VAR field")
 
-        header = bytes(0xF0 | ((l // (10 ** i)) % 10) for i in reversed(range(self.LL)))
+        header = bytes(0xF0 | ((length // (10 ** i)) % 10) for i in reversed(range(self.LL)))
         return header + data
 
 
@@ -198,7 +198,7 @@ class FlagByteField(IntField, FixedLengthField):
     LENGTH = 1
 
     def __init__(self, *args, **kwargs):
-        if not 'data_type' in kwargs:
+        if 'data_type' not in kwargs:
             raise TypeError("Must specify data_type")
         super().__init__(*args, **kwargs)
 
@@ -305,7 +305,7 @@ class TLVField(Field):
         return data.serialize()
 
     def __get__(self, instance, objtype=None) -> TLV:
-        if not self in instance._values:
+        if self not in instance._values:
             instance._values[self] = TLV()
             instance._values[self].pending = True
         return super().__get__(instance, objtype)

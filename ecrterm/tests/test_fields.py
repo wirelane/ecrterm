@@ -1,6 +1,7 @@
 from unittest import TestCase, main
 
-from ecrterm.packets.fields import *
+from ecrterm.packets.fields import IntField, Endianness, ByteField, BEIntField, BCDIntField, PasswordField, LVARField, \
+    StringField, LLLStringField, LLLVARField, TLVField, BytesField
 from ecrterm.packets.tlv import TLV
 
 
@@ -98,7 +99,8 @@ class TestFields(TestCase):
 
         d = b'\xf0\xf7\xf3AS-TID = 13F00013\rAS-Proc-Code = 20 903 00\rCapt.-Ref.= 0000\rAID59: 809258'
 
-        self.assertEqual(('AS-TID = 13F00013\rAS-Proc-Code = 20 903 00\rCapt.-Ref.= 0000\rAID59: 809258', b''), ls.parse(d))
+        self.assertEqual(('AS-TID = 13F00013\rAS-Proc-Code = 20 903 00\rCapt.-Ref.= 0000\rAID59: 809258', b''),
+                         ls.parse(d))
 
     def test_bytesfield(self):
         bf = BytesField()
@@ -124,7 +126,6 @@ class TestFields(TestCase):
         self.assertIsInstance(TLVField().coerce([]), TLV)
         self.assertIsInstance(TLVField().coerce(TLV(tag_=None, value_=[])).value_, list)
         self.assertIsInstance(IntField().coerce('3'), int)
-
 
     def test_validator(self):
         bf = ByteField()

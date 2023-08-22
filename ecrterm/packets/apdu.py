@@ -1,10 +1,10 @@
 """Classes and Functions which deal with the APDU Layer."""
 
-from typing import TypeVar, Type
+from typing import TypeVar, Type, List, Union, Tuple, Any
 from collections import OrderedDict
 
-from .fields import *
 from .bitmaps import BITMAPS
+from .fields import Field, ParseError
 
 # Currencies
 CC_EUR = '0978'
@@ -70,8 +70,8 @@ class APDU(metaclass=FieldContainer):
 
     def items(self):
         return \
-            [(name, getattr(self, name)) for (name, field) in self.FIELDS.items() if field in self._values] + \
-            [(name, getattr(self, name)) for name in self._bitmaps.keys()]
+                [(name, getattr(self, name)) for (name, field) in self.FIELDS.items() if field in self._values] + \
+                [(name, getattr(self, name)) for name in self._bitmaps.keys()]
 
     def __repr__(self):
         reps = [
@@ -141,11 +141,11 @@ class APDU(metaclass=FieldContainer):
             super().__setattr__(item, value)
 
     @staticmethod
-    def compute_length_field(l: int) -> bytes:
-        if l < 255:
-            return bytes([l])
-        if l < 256 * 256 - 1:
-            return bytes([0xff, l & 0xff, (l >> 8) & 0xff])
+    def compute_length_field(length: int) -> bytes:
+        if length < 255:
+            return bytes([length])
+        if length < 256 * 256 - 1:
+            return bytes([0xff, length & 0xff, (length >> 8) & 0xff])
         raise ValueError
 
     @classmethod
@@ -205,7 +205,7 @@ class APDU(metaclass=FieldContainer):
             except ParseError as e:
                 blacklist_candidates = [
                     f for f in retval.FIELDS.values()
-                    if not f.required and f.ignore_parse_error and not f in blacklist
+                    if not f.required and f.ignore_parse_error and f not in blacklist
                 ]
                 if not blacklist_candidates:
                     # No more we can do, probably really a parse error
@@ -217,9 +217,7 @@ class APDU(metaclass=FieldContainer):
         # FIXME Mandatory fields.
         return retval
 
-
-
-    def _parse_inner(self, data:bytes, blacklist: List[Field]) -> Union[List[Tuple[str, Any]], Field]:
+    def _parse_inner(self, data: bytes, blacklist: List[Field]) -> Union[List[Tuple[str, Any]], Field]:
         # ~~~~ Strategy to parse the SUPER CURSED Completion packet ~~~~
         # A) When a Field parser marked required=False, ignore_parse_error=True fails
         #    it gets added to the blacklist and not tried again
@@ -288,9 +286,9 @@ class CommandAPDU(APDU):
     def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
         data = bytes(data)
         return len(data) >= 2 and (
-            cls.CMD_CLASS is Ellipsis or cls.CMD_CLASS == data[0]
+                cls.CMD_CLASS is Ellipsis or cls.CMD_CLASS == data[0]
         ) and (
-            cls.CMD_INSTR is Ellipsis or cls.CMD_INSTR == data[1]
+                cls.CMD_INSTR is Ellipsis or cls.CMD_INSTR == data[1]
         )
 
     @property
@@ -321,9 +319,9 @@ class ResponseAPDU(APDU):
     def can_parse(cls, data: Union[bytes, List[int]]) -> bool:
         data = bytes(data)
         return len(data) >= 2 and (
-            cls.RESP_CCRC is Ellipsis or cls.RESP_CCRC == data[0]
+                cls.RESP_CCRC is Ellipsis or cls.RESP_CCRC == data[0]
         ) and (
-            cls.RESP_APRC is Ellipsis or cls.RESP_APRC == data[1]
+                cls.RESP_APRC is Ellipsis or cls.RESP_APRC == data[1]
         )
 
     @property

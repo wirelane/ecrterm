@@ -1,6 +1,6 @@
 from unittest import TestCase, main
 
-from ecrterm.packets.types import *
+from ecrterm.packets.types import CurrencyCode
 
 
 class TestTypes(TestCase):
