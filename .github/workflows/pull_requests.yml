@@ -1,0 +1,31 @@
+name: Run lint and tests
+
+on:
+  pull_request:
+    branches:
+      - py3
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r ecrterm/requirements.txt
+      - run: flake8 ecrterm/
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r ecrterm/requirements.txt
+      - run: python -m unittest discover -s ecrterm/tests/

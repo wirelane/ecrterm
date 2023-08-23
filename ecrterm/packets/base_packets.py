@@ -1,11 +1,10 @@
-import datetime
 import struct
-from typing import Dict
+from typing import Dict, List, Optional, Union
 
 from .apdu import CommandAPDU
-from .fields import *
+from .fields import BCDField, FlagByteField, BCDIntField, LLLStringField, ByteField, StringField
 from .text_encoding import ZVT_7BIT_CHARACTER_SET
-from .types import *
+from .types import ConfigByte, CurrencyCode
 
 
 class Packet(CommandAPDU):
@@ -260,91 +259,15 @@ class StatusInformation(Packet):
         - receipt-number-start, receipt-number-end contain the range of
           receipts
         """
-        ret = {}
         # create a dictionary of bitmaps:
         bdict = self.as_dict()
         # at least amount should be present:
         if 'amount' not in bdict.keys():
             return {}
         else:
-            ret = {'amount': bdict['amount'], }
+            return {'amount': bdict['amount'], }
         # bitmap 0x60 (totals) contains the required information.
         # another bitmap (amount) holds the amount
-
-        ## FIXME Parsing of totals in the parser
-        return ret
-
-        if 'totals' not in bdict.keys():
-            # this packet holds no detail information but an amount.
-            return ret
-        totals = bdict['totals']
-        totals_list = totals.value()
-        # totals_list = str(bdict['totals'])
-        # now we build our real data our of it.
-
-        # rebuild date and time.
-        my_time = None
-        my_date = None
-        if 'time' in bdict.keys():
-            # print bdict['time'].value()
-            mt = str(bdict['time'].value())
-            my_time = datetime.time(
-                hour=int(mt[0:2]), minute=int(mt[2:4]), second=int(mt[4:6]))
-        if 'date_day' in bdict.keys():
-            # print bdict['date'].value()
-            md = str(bdict['date_day'].value())
-            my_date = datetime.date(
-                year=datetime.datetime.now().year, month=int(md[0:2]),
-                day=int(md[2:4]))
-        ret = {
-            'receipt-number-start':
-                BCD.as_int(BCD.decode_bcd(totals_list[0:2])),
-            'receipt-number-end':
-                BCD.as_int(BCD.decode_bcd(totals_list[2:4])),
-            'number-ec-card': bs2hl(totals_list[4])[0],
-            'turnover-ec-card':
-                BCD.as_int(BCD.decode_bcd(totals_list[5:5 + 6])),
-            'number-jcb': bs2hl(totals_list[11])[0],
-            'turnover-jcb': BCD.as_int(BCD.decode_bcd(totals_list[12:12 + 6])),
-            'number-eurocard': bs2hl(totals_list[18])[0],
-            'turnover-eurocard':
-                BCD.as_int(BCD.decode_bcd(totals_list[19:19 + 6])),
-            'number-amex': bs2hl(totals_list[25])[0],
-            'turnover-amex':
-                BCD.as_int(BCD.decode_bcd(totals_list[26:26 + 6])),
-            'number-visa': bs2hl(totals_list[32])[0],
-            'turnover-visa':
-                BCD.as_int(BCD.decode_bcd(totals_list[33:33 + 6])),
-            'number-diners': bs2hl(totals_list[39])[0],
-            'turnover-diners':
-                BCD.as_int(BCD.decode_bcd(totals_list[40:40 + 6])),
-            'number-remaining': bs2hl(totals_list[46])[0],
-            'turnover-remaining':
-                BCD.as_int(BCD.decode_bcd(totals_list[47:47 + 6])),
-            'amount': int(bdict['amount'].value()),
-            'turnover-amount': int(bdict['amount'].value()),
-            'date': my_date,
-            'time': my_time,
-            'number-total': 0,
-        }
-        # time holds simply HHMMSS (BCD)
-        # date holds simply mmdd (BCD)
-
-        # adding a formatted version
-        tn = 0
-        float_version = {}
-        for key, value in ret.items():
-            if key.startswith('turnover-'):
-                key_id = key.replace('turnover-', '')
-                # add a key with a formatted representation.
-                v = float(value) / 100.0
-                float_version['float-%s' % key_id] = v
-            elif key.startswith('number-'):
-                # add total numbers.
-                tn += int(value)
-        ret['number-total'] = tn
-        ret.update(float_version)
-        return ret
 
 
 class IntermediateStatusInformation(Packet):

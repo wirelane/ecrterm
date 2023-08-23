@@ -1,6 +1,6 @@
-from unittest import TestCase, main, expectedFailure
+from unittest import TestCase
 
-from ecrterm.packets.tlv import *
+from ecrterm.packets.tlv import TLV, TLVClass
 
 
 class TestTLV(TestCase):
@@ -67,8 +67,6 @@ class TestTLV(TestCase):
         ))
 
         self.assertEqual(2, len(t1.value_))
-
-
 
     def test_container_implicit_creation(self):
         t1 = TLV()

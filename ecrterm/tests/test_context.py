@@ -1,6 +1,8 @@
-from ecrterm.packets.context import enter_context, GlobalContext, CurrentContext
+import threading
+import time
 from unittest import TestCase, main
-import threading, time
+
+from ecrterm.packets.context import enter_context, GlobalContext, CurrentContext
 
 
 class TestContext(TestCase):
@@ -92,6 +94,7 @@ class TestContext(TestCase):
 
         self.assertEqual(1, GlobalContext['test_threads'])
         self.assertEqual(1, CurrentContext['test_threads'])
+
 
 if __name__ == '__main__':
     main()

@@ -465,7 +465,7 @@ class ECR(object):
                 ok, message = self.transport.receive(timeout)
                 if ok and message:
                     return message
-            except:
+            except Exception:
                 logger.exception()
                 continue
             print('-mark-')

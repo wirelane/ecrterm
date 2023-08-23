@@ -8,7 +8,6 @@ The Serial Layer is a transport used for
 
 import serial
 import logging
-from functools import partial
 from typing import Tuple
 from ecrterm.common import Transport
 from ecrterm.conv import toHexString
@@ -207,7 +206,8 @@ class SerialTransport(Transport):
         """
         if data:
             message = SerialMessage(data)
-            self.write(bytes([DLE, STX]) + data.replace(bytes([DLE]), bytes([DLE, DLE])) + bytes([DLE, ETX, message.crc_l, message.crc_h]))
+            self.write(bytes([DLE, STX]) + data.replace(bytes([DLE]), bytes([DLE, DLE]))
+                       + bytes([DLE, ETX, message.crc_l, message.crc_h]))
             acknowledge = b''
             ts_start = time()
             while len(acknowledge) < 1:
