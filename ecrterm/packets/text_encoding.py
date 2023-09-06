@@ -26,7 +26,7 @@ def encode(value: str, encoding: Union[list, CharacterSet] = CharacterSet.DEFAUL
     if encoding is ZVT_7BIT_CHARACTER_SET:
         return bytes(ZVT_7BIT_CHARACTER_SET.index(t) for t in value)
     elif isinstance(encoding, CharacterSet):
-        return value.encode(_map_character_set(encoding))
+        return value.encode(_map_character_set(encoding), 'ignore')
     else:
         raise ValueError("encoding parameter must me a CharacterSet or the special value ZVT_7BIT_CHARACTER_SET")
 
