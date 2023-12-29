@@ -203,6 +203,17 @@ class Completion(Packet):
 
         return serial_number
 
+    def get_device_name(self):
+        device_name = None
+        tlv = self.get('tlv')
+        if tlv is not None:
+            device_information = tlv.get_value('xE4', [])
+            for item in device_information:
+                if item.tag_ == 0x1F40:
+                    device_name = item.value_
+
+        return device_name
+
 
 class Abort(Packet):
     """
