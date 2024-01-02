@@ -18,6 +18,7 @@ class TestParsingCompletion(TestCase):
         self.assertIsInstance(parsed, Completion)
         self.assertEqual(parsed.get_serial_number(), '11e930ec')
         self.assertEqual(parsed.sw_version, 'GER-APP-v2.0.9;cR02.01.01-00.09-2-2;CC26')
+        self.assertEqual(parsed.get_device_name(), 'cVEND box+')
         self.assertEqual(TERMINAL_STATUS_CODES.get(parsed.terminal_status), 'PT ready')
 
 
