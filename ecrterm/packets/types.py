@@ -6,6 +6,11 @@ class IntEnumRepr(IntEnum):
         return "{}.{}".format(self.__class__.__name__, self.name)
 
 
+class StatusEnquiryServiceByte(IntFlag):
+    DO_NOT_SEND_SW_VERSION = 0x02  # sending enabled by ZVT default
+    SEND_TLV = 0x04
+
+
 class ConfigByte(IntFlag):
     ECR_PRINTS_PAYMENT = 0x02
     ECR_PRINTS_ADMIN = 0x04

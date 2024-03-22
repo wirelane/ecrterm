@@ -294,7 +294,7 @@ class ECR(object):
             i += 1
         return self.transmit(DisplayText(**kw))
 
-    def status(self):
+    def status(self, service_byte=None):
         """
         executes a status enquiry. also sets self.version if not set.
         success:
@@ -307,7 +307,10 @@ class ECR(object):
         to check for the status code:
             common.TERMINAL_STATUS_CODES.get( status, 'Unknown' )
         """
-        errors = self.transmit(StatusEnquiry(self.password))
+        sb_kwargs = {}
+        if service_byte is not None:
+            sb_kwargs = {'service_byte_preamble': 0x03, 'service_byte': service_byte}
+        errors = self.transmit(StatusEnquiry(self.password, **sb_kwargs))
         if not errors:
             if isinstance(self.last.completion, Completion):
                 # try to get version

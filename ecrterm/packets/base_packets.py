@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 from .apdu import CommandAPDU
 from .fields import BCDField, FlagByteField, BCDIntField, LLLStringField, ByteField, StringField
 from .text_encoding import ZVT_7BIT_CHARACTER_SET
-from .types import ConfigByte, CurrencyCode
+from .types import ConfigByte, CurrencyCode, StatusEnquiryServiceByte
 
 
 class Packet(CommandAPDU):
@@ -225,6 +225,7 @@ class Abort(Packet):
     CMD_INSTR = 0x1e
 
     result_code = ByteField()
+
     # FIXME error_code
 
     def get_receipt_numbers(self) -> List[str]:
@@ -429,6 +430,11 @@ class StatusEnquiry(CommandWithPassword):
     CMD_CLASS = 0x05
     CMD_INSTR = 0x01
     wait_for_completion = True
+
+    # TODO: should be cleaned up by maybe introducing a separate field
+    # type for service byte?
+    service_byte_preamble = ByteField()  # must be always set to 0x03 if service byte is set
+    service_byte = FlagByteField(data_type=StatusEnquiryServiceByte)
 
 
 class ChangePTConfiguration(Packet):
