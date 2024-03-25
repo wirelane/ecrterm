@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 from .apdu import CommandAPDU
 from .fields import BCDField, FlagByteField, BCDIntField, LLLStringField, ByteField, StringField
 from .text_encoding import ZVT_7BIT_CHARACTER_SET
-from .types import ConfigByte, CurrencyCode, StatusEnquiryServiceByte
+from .types import ConfigByte, CurrencyCode
 
 
 class Packet(CommandAPDU):
@@ -431,10 +431,7 @@ class StatusEnquiry(CommandWithPassword):
     CMD_INSTR = 0x01
     wait_for_completion = True
 
-    # TODO: should be cleaned up by maybe introducing a separate field
-    # type for service byte?
-    service_byte_preamble = ByteField()  # must be always set to 0x03 if service byte is set
-    service_byte = FlagByteField(data_type=StatusEnquiryServiceByte)
+    ALLOWED_BITMAPS = ['service_byte', 'tlv']
 
 
 class ChangePTConfiguration(Packet):

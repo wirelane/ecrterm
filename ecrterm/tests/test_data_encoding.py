@@ -20,6 +20,7 @@ from ecrterm.packets.apdu import APDU
 from ecrterm.packets.base_packets import (
     Authorisation, Diagnosis, DisplayText, Initialisation, PacketReceived,
     PacketReceivedError, PrintLine, Registration, ResetTerminal, StatusEnquiry, ReadCard)
+from ecrterm.packets.types import ServiceByte
 from ecrterm.transmission.signals import ACK, NAK, DLE, ETX, STX
 from ecrterm.transmission.transport_serial import SerialMessage
 
@@ -114,6 +115,12 @@ class TestCaseDataEncoding(TestCase):
     def test_packet_statusenquiry(self):
         data_expected = '10 02 05 01 03 12 34 56 10 03 E0 43'
         pk = StatusEnquiry('123456')
+        self.assertEqual(data_expected, list_of_bytes(pk))
+
+    def test_packet_statusenquiry_with_service_byte(self):
+        data_expected = '10 02 05 01 05 12 34 56 03 04 10 03 30 94'
+        sb_kwargs = {'service_byte': ServiceByte.STATUS_ENQUIRY_SEND_TLV}
+        pk = StatusEnquiry('123456', **sb_kwargs)
         self.assertEqual(data_expected, list_of_bytes(pk))
 
 
