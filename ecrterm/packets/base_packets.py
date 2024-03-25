@@ -225,6 +225,7 @@ class Abort(Packet):
     CMD_INSTR = 0x1e
 
     result_code = ByteField()
+
     # FIXME error_code
 
     def get_receipt_numbers(self) -> List[str]:
@@ -429,6 +430,8 @@ class StatusEnquiry(CommandWithPassword):
     CMD_CLASS = 0x05
     CMD_INSTR = 0x01
     wait_for_completion = True
+
+    ALLOWED_BITMAPS = ['service_byte', 'tlv']
 
 
 class ChangePTConfiguration(Packet):

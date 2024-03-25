@@ -9,6 +9,7 @@ Maybe create a small console program which allows us to:
 import logging
 import string
 from time import sleep
+from typing import Optional
 
 from ecrterm.common import TERMINAL_STATUS_CODES
 from ecrterm.conv import toBytes
@@ -19,7 +20,7 @@ from ecrterm.packets.base_packets import (
     PrintLine, ReadCard, Registration, ReservationBookTotal, ReservationPartialReversal,
     ReservationRequest, ResetTerminal, SetTerminalID, StatusEnquiry, StatusInformation, WriteFiles,
     OpenReservationsEnquiry)
-from ecrterm.packets.types import (ConfigByte, CurrencyCode)
+from ecrterm.packets.types import (ConfigByte, CurrencyCode, ServiceByte)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
@@ -294,7 +295,7 @@ class ECR(object):
             i += 1
         return self.transmit(DisplayText(**kw))
 
-    def status(self):
+    def status(self, service_byte: Optional[ServiceByte] = None):
         """
         executes a status enquiry. also sets self.version if not set.
         success:
@@ -307,7 +308,10 @@ class ECR(object):
         to check for the status code:
             common.TERMINAL_STATUS_CODES.get( status, 'Unknown' )
         """
-        errors = self.transmit(StatusEnquiry(self.password))
+        sb_kwargs = {}
+        if service_byte is not None:
+            sb_kwargs = {'service_byte': service_byte}
+        errors = self.transmit(StatusEnquiry(self.password, **sb_kwargs))
         if not errors:
             if isinstance(self.last.completion, Completion):
                 # try to get version

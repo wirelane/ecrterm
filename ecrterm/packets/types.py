@@ -19,10 +19,12 @@ class ConfigByte(IntFlag):
 
 
 class ServiceByte(IntFlag):
-    SERVICE_MENU_NOT_ASSIGNED = 0x01
-    USE_CAPITALS = 0x02
+    REGISTRATION_NONE = REGISTRATION_DEFAULT = 0x00
+    REGISTRATION_SERVICE_MENU_NOT_ASSIGNED = 0x01
+    REGISTRATION_USE_CAPITALS = 0x02
 
-    NONE = DEFAULT = 0x00
+    STATUS_ENQUIRY_DO_NOT_SEND_SW_VERSION = 0x02  # sending enabled by ZVT default
+    STATUS_ENQUIRY_SEND_TLV = 0x04
 
 
 class CurrencyCode(IntEnumRepr):
