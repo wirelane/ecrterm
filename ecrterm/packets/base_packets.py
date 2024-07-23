@@ -413,7 +413,7 @@ class CloseCardSession(CommandAPDU):
     wait_for_completion = False
 
 
-class ResetTerminal(CommandAPDU):
+class ResetTerminal(Packet):
     """
     06 18
     works.
