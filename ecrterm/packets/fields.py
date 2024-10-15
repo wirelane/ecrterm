@@ -326,6 +326,7 @@ TLVDictionary.register(
         0x1f00: BEIntField(name='file_size', length=4),
         0x1f10: FlagByteField(name="cardholder_identification", data_type=CardholderIdentification),
         0x1f11: FlagByteField(name='online_tag', data_type=OnlineTag),
+        0x1F16: BCDVariableLengthField(name="extended_error_code"),
         0x1F17: StringField(name="extended_error_text", character_set=CharacterSet.ZVT_8BIT),
         0x1F40: StringField(name="device_name", character_set=CharacterSet.ASCII_7BIT),
         0x1F41: StringField(name="software_version", character_set=CharacterSet.ASCII_7BIT),
