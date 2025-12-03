@@ -320,6 +320,7 @@ TLVDictionary.register(
         0x15: StringField(name="language_code", character_set=CharacterSet.ASCII_7BIT),
         0x23: ContainerType(name='receipt-numbers'),
         0x1a: BEIntField(name='max_apdu_length', length=2),
+        0x1b: BEIntField(name='diagnosis_type', length=1),
         0x1d: BEIntField(name='file_id', length=1),
         0x1e: BEIntField(name='start_position', length=4),
         0x40: BytesField(name='emv_config'),
