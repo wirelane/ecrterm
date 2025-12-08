@@ -19,8 +19,9 @@ from ecrterm.packets.base_packets import (
     Authorisation, CloseCardSession, Completion, DisplayText, EndOfDay, Initialisation, Packet,
     PrintLine, ReadCard, Registration, ReservationBookTotal, ReservationPartialReversal,
     ReservationRequest, ResetTerminal, SetTerminalID, StatusEnquiry, StatusInformation, WriteFiles,
-    OpenReservationsEnquiry)
-from ecrterm.packets.types import (ConfigByte, CurrencyCode, ServiceByte)
+    OpenReservationsEnquiry, Diagnosis)
+from ecrterm.packets.tlv import TLVDictionary
+from ecrterm.packets.types import (ConfigByte, CurrencyCode, ServiceByte, DiagnosisType)
 from ecrterm.transmission._transmission import Transmission
 from ecrterm.transmission.signals import ACK, DLE, ETX, NAK, STX, TRANSMIT_OK
 from ecrterm.transmission.transport_serial import SerialTransport
@@ -418,6 +419,19 @@ class ECR(object):
         """
         packet = Initialisation(
             password=self.password
+        )
+
+        return self._send_packet(packet, listener)
+
+    def request_diagnosis(self,
+                          diagnosis_type=DiagnosisType.EXTENDED_DIAGNOSIS,
+                          listener=None):
+        """
+        """
+        packet = Diagnosis(
+            tlv={
+                0x1b: TLVDictionary['zvt'][0x1b].to_bytes(diagnosis_type),
+            }
         )
 
         return self._send_packet(packet, listener)

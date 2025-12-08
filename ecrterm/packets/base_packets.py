@@ -368,6 +368,10 @@ class Diagnosis(Packet):
     CMD_INSTR = 0x70
     wait_for_completion = True
 
+    ALLOWED_BITMAPS = [
+        'tlv'
+    ]
+
     def _handle_response(self, response, tm):
         if isinstance(response, PrintLine):
             print(response._data)
