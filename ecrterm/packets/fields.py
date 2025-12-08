@@ -1,4 +1,5 @@
 import string
+import typing
 from enum import Enum
 from typing import Any, Union, List, Optional, Tuple
 
@@ -177,7 +178,7 @@ class StringField(BytesField):
             else CurrentContext.get('character_set', CharacterSet.DEFAULT)
         return decode(bytes(v), character_set)
 
-    def to_bytes(self, v: str, length: int = None) -> bytes:
+    def to_bytes(self, v: str, length: typing.Optional[int] = None) -> bytes:
         character_set = self._character_set if self._character_set is not None \
             else CurrentContext.get('character_set', CharacterSet.DEFAULT)
         retval = encode(v, character_set)
@@ -324,6 +325,10 @@ TLVDictionary.register(
         0x1d: BEIntField(name='file_id', length=1),
         0x1e: BEIntField(name='start_position', length=4),
         0x40: BytesField(name='emv_config'),
+        # variable length -> important IDs can be found in ZvtCardType
+        0x41: BytesField(name='card_type_id'),
+        0x42: StringField(name="application_label", character_set=CharacterSet.ASCII_7BIT),
+        0x43: BytesField(name="application_id"),
         0x1f00: BEIntField(name='file_size', length=4),
         0x1f10: FlagByteField(name="cardholder_identification", data_type=CardholderIdentification),
         0x1f11: FlagByteField(name='online_tag', data_type=OnlineTag),

@@ -89,3 +89,11 @@ class DiagnosisType(IntEnum):
     CONFIGURATION_DIAGNOSIS = 3
     EMV_CONFIGURATION_DIAGNOSIS = 4
     EP2_CONFIGURATION_DIAGNOSIS = 5
+
+
+class ZvtCardType(IntEnum):
+    GIROCARD = 5
+    MASTERCARD = 6
+    VISA = 10
+    VPAY = 13
+    MAESTRO = 46
