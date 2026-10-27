@@ -31,4 +31,5 @@ reports loader errors instead of test results.
 - Setting a field or bitmap attribute to `None` stores the coerced value (`BCDField` turns it into the string `'None'`).
   To leave a value empty, do not set it.
 - Some terminals send BMP 87 (receipt number) without value bytes. `APDU._parse_inner` retries the bitmap parsing with
-  one 0x87 treated as empty only if the normal parse fails, and leaves `receipt` unset in that case.
+  that 87 treated as empty (leaving `receipt` unset) only if the normal parse failed directly after an 87, i.e. the
+  receipt was the last bitmap parsed. If the retry fails in any way, the original `ParseError` is raised.
