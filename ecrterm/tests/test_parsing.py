@@ -6,9 +6,9 @@ from logging import info
 from unittest import TestCase, main
 
 from ecrterm.ecr import parse_represented_data
-from ecrterm.packets.base_packets import Completion, Packet
+from ecrterm.packets.base_packets import Completion, Packet, StatusInformation
 from ecrterm.packets.fields import ParseError
-from ecrterm.packets.types import CharacterSet
+from ecrterm.packets.types import CardholderIdentification, CharacterSet
 from ecrterm.packets.text_encoding import ZVT_7BIT_CHARACTER_SET
 from ecrterm.packets.context import enter_context
 
@@ -146,6 +146,58 @@ class TestParsingMechanisms(TestCase):
         self.assertTrue('Invalid bitmap 0x10 in data: 16282010100069645102914831040021034510291493104000231451029133310'
                         + '40594818451029132310400210345102911616310404158674510291173104018051084510291183104003574510'
                         + '291193104006216318557' in str(context.exception))
+
+    def test_status_information_with_empty_receipt_bitmap(self):
+        # declined reservation (result code 0xFC): BMP 87 is sent without its two value bytes
+        packet = '040f3627fc040000000100004909780c2134480d102622f0f0870b000000196029525259598bf0f1' \
+                 '00060e410200002f081f1001ff1f120100'
+
+        p = parse_represented_data(packet)
+
+        self.assertIsInstance(p, StatusInformation)
+        self.assertEqual(0xFC, p.result_code)
+        self.assertEqual(10000, p.amount)
+        self.assertEqual('000000', p.trace_number)
+        self.assertEqual('52525959', p.tid)
+        self.assertIsNone(p.receipt)
+        self.assertEqual(b'\x00\x00', p.tlv.x41)
+        self.assertEqual(CardholderIdentification.UNKNOWN, p.tlv.x2f.x1f10)
+        self.assertEqual(0xFC, p.as_dict()['result_code'])
+        self.assertEqual('52525959', p.as_dict()['tid'])
+
+    def test_status_information_with_empty_receipt_bitmap_and_result_code_6c(self):
+        packet = '040f36276c040000000050004909780c2152500d102422f0f0870b000000196029525243568bf0f1' \
+                 '00060e410200002f081f1001ff1f120100'
+
+        p = parse_represented_data(packet)
+
+        self.assertIsInstance(p, StatusInformation)
+        self.assertEqual(0x6C, p.result_code)
+        self.assertEqual(5000, p.amount)
+        self.assertEqual('000000', p.trace_number)
+        self.assertEqual('52524356', p.tid)
+        self.assertIsNone(p.receipt)
+        self.assertEqual(b'\x00\x00', p.tlv.x41)
+        self.assertEqual(CardholderIdentification.UNKNOWN, p.tlv.x2f.x1f10)
+
+    def test_status_information_with_receipt_bitmap(self):
+        packet = '040f1527fc0400000001000087012329525259590b000000'
+
+        p = parse_represented_data(packet)
+
+        self.assertIsInstance(p, StatusInformation)
+        self.assertEqual('0123', p.receipt)
+        self.assertEqual('52525959', p.tid)
+        self.assertEqual('000000', p.trace_number)
+
+    def test_status_information_with_empty_receipt_bitmap_and_unknown_bitmap_raises_invalid_bitmap(self):
+        # 0x10 is no known bitmap, so treating BMP 87 as empty does not make the packet parsable
+        packet = '040f0f27fc04000000010000870b00000010'
+
+        with self.assertRaises(ParseError) as context:
+            parse_represented_data(packet)
+
+        self.assertIn('Invalid bitmap 0x00 in data: 040f0f27fc04000000010000870b00000010', str(context.exception))
 
 
 if __name__ == '__main__':

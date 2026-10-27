@@ -1,6 +1,6 @@
 """Classes and Functions which deal with the APDU Layer."""
 
-from typing import TypeVar, Type, List, Union, Tuple, Any
+from typing import TypeVar, Type, List, Union, Tuple, Any, Optional
 from collections import OrderedDict
 
 from .bitmaps import BITMAPS
@@ -246,13 +246,39 @@ class APDU(metaclass=FieldContainer):
             retval.append((name, value))
 
         # Try to parse the remainder as bitmaps
-        while len(data):
-            key = data[0]
+        try:
+            retval.extend(self._parse_bitmaps(data))
+        except ParseError:
+            # Some terminals send BMP 87 (receipt number) without any value bytes, e.g. in the
+            # status information of a declined reservation. Retry with each 0x87 byte treated as
+            # such an empty receipt bitmap and keep the original error if none of them helps.
+            for offset in (i for i, byte in enumerate(data) if byte == 0x87):
+                try:
+                    retval.extend(self._parse_bitmaps(data, empty_receipt_offset=offset))
+                    break
+                except ParseError:
+                    continue
+            else:
+                raise
+
+        return retval
+
+    def _parse_bitmaps(self, data: bytes, empty_receipt_offset: Optional[int] = None) -> List[Tuple[str, Any]]:
+        retval = []
+        offset = 0
+
+        while offset < len(data):
+            key = data[offset]
             field, name, description = self._KNOWN_BITMAPS.get(key, (None, None, None))
             if field is None:
                 raise ParseError("Invalid bitmap 0x{:02X}".format(key))
-            value, data = field.parse(data[1:])
+            if key == 0x87 and offset == empty_receipt_offset:
+                # Leave the receipt unset: setting None would be coerced to the string 'None'
+                offset += 1
+                continue
+            value, remainder = field.parse(data[offset + 1:])
             retval.append((name, value))
+            offset = len(data) - len(remainder)
 
         return retval
 
