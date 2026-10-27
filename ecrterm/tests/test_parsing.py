@@ -199,6 +199,35 @@ class TestParsingMechanisms(TestCase):
 
         self.assertIn('Invalid bitmap 0x00 in data: 040f0f27fc04000000010000870b00000010', str(context.exception))
 
+    def test_status_information_with_receipt_and_misaligned_data_raises_original_parse_error(self):
+        # treating the valid receipt 0412 as empty would make the BCD amount parser fail on 120b00012329
+        packet = '040f1627fc040000000100008704120b000123295252595910'
+
+        with self.assertRaises(ParseError) as context:
+            parse_represented_data(packet)
+
+        self.assertIn('Invalid bitmap 0x10 in data: 040f1627fc040000000100008704120b000123295252595910',
+                      str(context.exception))
+
+    def test_status_information_with_receipt_starting_with_tlv_tag_raises_original_parse_error(self):
+        # treating the valid receipt 0612 as empty would let a TLV (06) swallow the rest of the packet
+        packet = '040f1627fc040000000100008706120b000123295252595910'
+
+        with self.assertRaises(ParseError) as context:
+            parse_represented_data(packet)
+
+        self.assertIn('Invalid bitmap 0x10 in data: 040f1627fc040000000100008706120b000123295252595910',
+                      str(context.exception))
+
+    def test_status_information_with_failing_empty_receipt_retry_raises_original_parse_error(self):
+        # the normal parse fails right after receipt 041a, the retry with an empty 87 fails on the BCD amount 1a10...
+        packet = '040f1127fc0400000001000087041a1000000000'
+
+        with self.assertRaises(ParseError) as context:
+            parse_represented_data(packet)
+
+        self.assertIn('Invalid bitmap 0x10 in data: 040f1127fc0400000001000087041a1000000000', str(context.exception))
+
 
 if __name__ == '__main__':
     main()
