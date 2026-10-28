@@ -1,6 +1,6 @@
 """Classes and Functions which deal with the APDU Layer."""
 
-from typing import TypeVar, Type, List, Union, Tuple, Any
+from typing import TypeVar, Type, List, Union, Tuple, Any, Optional, Iterator
 from collections import OrderedDict
 
 from .bitmaps import BITMAPS
@@ -246,15 +246,42 @@ class APDU(metaclass=FieldContainer):
             retval.append((name, value))
 
         # Try to parse the remainder as bitmaps
-        while len(data):
-            key = data[0]
+        bitmaps = []
+        try:
+            for bitmap in self._iterate_bitmaps(data):
+                bitmaps.append(bitmap)
+        except ParseError as error:
+            # Some terminals send BMP 87 (receipt number) without any value bytes, e.g. in the
+            # status information of a declined reservation. The receipt then swallows the next
+            # bitmap key, so parsing fails right after it. Only in that case retry with that 87
+            # being empty, and keep the original error if the retry fails in any way.
+            if not bitmaps or bitmaps[-1][0] != 0x87:
+                raise
+            try:
+                bitmaps = list(self._iterate_bitmaps(data, empty_receipt_offset=bitmaps[-1][1]))
+            except Exception:
+                raise error from None
+
+        retval.extend((name, value) for key, offset, name, value in bitmaps)
+
+        return retval
+
+    def _iterate_bitmaps(self, data: bytes, empty_receipt_offset: Optional[int] = None) \
+            -> Iterator[Tuple[int, int, str, Any]]:
+        offset = 0
+
+        while offset < len(data):
+            key = data[offset]
             field, name, description = self._KNOWN_BITMAPS.get(key, (None, None, None))
             if field is None:
                 raise ParseError("Invalid bitmap 0x{:02X}".format(key))
-            value, data = field.parse(data[1:])
-            retval.append((name, value))
-
-        return retval
+            if key == 0x87 and offset == empty_receipt_offset:
+                # Leave the receipt unset: setting None would be coerced to the string 'None'
+                offset += 1
+                continue
+            value, remainder = field.parse(data[offset + 1:])
+            yield key, offset, name, value
+            offset = len(data) - len(remainder)
 
     def serialize(self) -> bytes:
         data = bytearray()
